@@ -14,6 +14,9 @@ app.use(express.static('public')); //открывает файлы из папк
 const authRoutes = require('./routes/auth');
 app.use('/api/auth', authRoutes);
 
+const poolsRoutes = require('./routes/pools');
+app.use('/api/pools', poolsRoutes);
+
 //тестовый маршрут
 app.get('/', (req, res) => {
     res.send('<h1>SwimTrack Lab 2 запущен</h1>');
