@@ -1,6 +1,7 @@
 const express = require('express');
 const router = express.Router();
 const db = require('../database');
+const { authenticateToken } = require('../middleware/middleware'); 
 
 //список всех бассейнов
 router.get('/', async (req, res) => {
@@ -34,3 +35,32 @@ router.get('/:id', async (req, res) => {
         res.status(500).json({ error: 'Ошибка сервера' });
     }
 });
+
+router.post('/', authenticateToken, async (req, res) => {
+    try {
+        const { name, city, address, price, amenities, rating } = req.body;
+
+        //проверка обязательных полей
+        if (!name || !city || !price) {
+            return res.status(400).json({ 
+                error: 'Недостаточно данных: name, city, price обязательны' 
+            });
+        }
+
+        const result = await db.query(
+            'INSERT INTO pools (name, city, address, price, amenities, rating) VALUES ($1, $2, $3, $4, $5, $6) RETURNING id, name, city',
+            [name, city, address || '', price, amenities || '', rating || 0]
+        );
+
+        res.status(201).json({
+            message: 'Бассейн успешно добавлен',
+            pool: result.rows[0]
+        });
+
+    } catch (error) {
+        console.error('Ошибка добавления бассейна:', error);
+        res.status(500).json({ error: 'Ошибка сервера' });
+    }
+});
+
+module.exports = router;
