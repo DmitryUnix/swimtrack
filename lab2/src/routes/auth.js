@@ -2,7 +2,8 @@ const express = require('express');
 const router = express.Router();
 const db = require('../database');
 const bcrypt = require('bcryptjs');
-
+const jwt = require('jsonwebtoken');
+const { authenticateToken } = require('../middleware/middleware'); 
 //регистрация нового пользователя
 router.post('/register', async (req, res) => {
     try {
@@ -52,7 +53,7 @@ router.post('/register', async (req, res) => {
     }
 });
 
-//авторизация (вход в систему)
+//аутаризация (вход в систему)
 router.post('/login', async (req, res) => {
     try {
         const { email, password } = req.body;
@@ -88,11 +89,14 @@ router.post('/login', async (req, res) => {
             });
         }
 
-        //успешный вход
+        //успешный вход то генерируем токен
+        const token = jwt.sign({ id: user.id, email: user.email }, process.env.JWT_SECRET, { expiresIn: '1h' });
+
         res.json({
             message: 'Успешный вход',
             userId: user.id,
-            email: user.email
+            email: user.email,
+            token: token
         });
 
     } catch (error) {
@@ -103,4 +107,26 @@ router.post('/login', async (req, res) => {
     }
 });
 
+router.get('/me', authenticateToken, async (req, res) => {
+    try {
+        //берем id из токена который мы подписали при логине
+        const userId = req.user.id;
+
+        //запрашиваем данные пользователя из базы
+        const result = await db.query(
+            'SELECT id, email, name FROM users WHERE id = $1',
+            [userId]
+        );
+
+        if (result.rows.length === 0) {
+            return res.status(404).json({ error: 'Пользователь не найден' });
+        }
+
+        res.json(result.rows[0]);
+
+    } catch (error) {
+        console.error('Ошибка получения профиля:', error);
+        res.status(500).json({ error: 'Ошибка сервера' });
+    }
+});
 module.exports = router;
