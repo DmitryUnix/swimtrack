@@ -3,12 +3,16 @@ const express = require('express');
 const app = express();
 const PORT = process.env.PORT || 3000;
 
-//подключение к базе
+//подключение к базе данных
 require('./database'); 
 
-//middleware
+// Middleware
 app.use(express.json()); //понимает JSON от клиента
 app.use(express.static('public')); //открывает файлы из папки public
+
+//подключаем маршруты авторизации
+const authRoutes = require('./routes/auth');
+app.use('/api/auth', authRoutes);
 
 //тестовый маршрут
 app.get('/', (req, res) => {
