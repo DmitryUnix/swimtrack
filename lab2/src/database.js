@@ -1,25 +1,23 @@
 const { Pool } = require('pg');
 require('dotenv').config();
 
-//настройки подключения к Supabase
+// Подключаемся через строку из .env
 const pool = new Pool({
-  host: process.env.DB_HOST,
-  port: process.env.DB_PORT || 5432,
-  user: process.env.DB_USER,
-  password: process.env.DB_PASSWORD,
-  database: process.env.DB_NAME,
-  ssl: { rejectUnauthorized: false }
+    connectionString: process.env.DATABASE_URL,
+    ssl: {
+        rejectUnauthorized: false // Обязательно для Supabase/Render
+    }
 });
 
-//проверка подключения при старте
-pool.connect((err, client, release) => {
-  if (err) {
-    console.error('Ошибка подключения к БД:', err.message);
-    process.exit(1);
-  } else {
-    console.log('Подключение к PostgreSQL (Supabase) успешно');
-    release();
-  }
+pool.on('connect', () => {
+    console.log('Подключено к облачной базе PostgreSQL (Supabase)');
 });
 
-module.exports = pool;
+pool.on('error', (err) => {
+    console.error('Ошибка пула PostgreSQL:', err);
+});
+
+module.exports = {
+    // Сохраняем тот же интерфейс, чтобы не менять auth.js и pools.js
+    query: (text, params) => pool.query(text, params)
+};

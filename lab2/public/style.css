@@ -1,36 +1,60 @@
 body {
     font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-    background-color: #f4f7f6;
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); /* Красивый фиолетово-синий градиент */
     color: #333;
     margin: 0;
     padding: 0;
+    min-height: 100vh;
+    display: flex;
+    justify-content: center;
+    align-items: center;
 }
 
 .container {
     max-width: 800px;
+    width: 90%;
     margin: 40px auto;
-    padding: 20px;
+    padding: 40px;
     background: white;
-    border-radius: 8px;
-    box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+    border-radius: 15px;
+    box-shadow: 0 10px 30px rgba(0,0,0,0.2);
+    text-align: center;
 }
 
 header {
-    text-align: center;
-    margin-bottom: 30px;
-    border-bottom: 2px solid #eee;
-    padding-bottom: 20px;
+    margin-bottom: 40px;
+}
+
+h1 {
+    color: #764ba2;
+    font-size: 3rem;
+    margin-bottom: 20px;
+    text-shadow: 2px 2px 4px rgba(0,0,0,0.1);
+}
+
+nav {
+    display: flex;
+    justify-content: center;
+    gap: 20px;
+    flex-wrap: wrap;
 }
 
 nav a {
     text-decoration: none;
-    color: #007bff;
-    margin: 0 10px;
+    color: #667eea;
     font-weight: bold;
+    font-size: 1.1rem;
+    padding: 10px 20px;
+    border-radius: 25px;
+    transition: all 0.3s ease;
+    background: #f0f0f0;
 }
 
 nav a:hover {
-    text-decoration: underline;
+    background: #667eea;
+    color: white;
+    transform: translateY(-2px);
+    box-shadow: 0 4px 8px rgba(102, 126, 234, 0.3);
 }
 
 .hidden {
@@ -43,63 +67,116 @@ form {
     gap: 15px;
     max-width: 400px;
     margin: 0 auto;
+    text-align: left;
 }
 
 input {
-    padding: 10px;
-    border: 1px solid #ddd;
-    border-radius: 4px;
+    padding: 12px;
+    border: 2px solid #ddd;
+    border-radius: 8px;
     font-size: 16px;
+    transition: border-color 0.3s;
+}
+
+input:focus {
+    outline: none;
+    border-color: #667eea;
 }
 
 button[type="submit"] {
     padding: 12px;
-    background-color: #007bff;
+    background: linear-gradient(to right, #667eea, #764ba2);
     color: white;
     border: none;
-    border-radius: 4px;
+    border-radius: 8px;
     font-size: 16px;
+    font-weight: bold;
     cursor: pointer;
-    transition: background 0.3s;
+    transition: transform 0.2s, box-shadow 0.2s;
 }
 
 button[type="submit"]:hover {
-    background-color: #0056b3;
+    transform: scale(1.02);
+    box-shadow: 0 4px 12px rgba(118, 75, 162, 0.4);
 }
 
 #logout-btn {
-    background-color: #dc3545;
+    background: linear-gradient(to right, #ff6b6b, #ee5a6e);
     color: white;
     border: none;
-    padding: 8px 16px;
-    border-radius: 4px;
+    padding: 10px 20px;
+    border-radius: 8px;
     cursor: pointer;
     margin-top: 20px;
+    font-weight: bold;
+    transition: transform 0.2s;
 }
 
-#error-msg {
-    color: #dc3545;
+#logout-btn:hover {
+    transform: scale(1.02);
+}
+
+.error-msg {
+    color: #ff6b6b;
     text-align: center;
     margin-top: 10px;
     min-height: 20px;
+    font-weight: bold;
 }
 
 #user-info {
-    background: #e9ecef;
-    padding: 15px;
-    border-radius: 5px;
+    background: linear-gradient(to right, #f0f0f0, #e0e0e0);
+    padding: 20px;
+    border-radius: 10px;
     margin-bottom: 20px;
+    text-align: left;
 }
 
 ul {
     list-style-type: none;
     padding: 0;
+    text-align: left;
 }
 
 li {
-    background: #fff;
+    background: white;
     border-bottom: 1px solid #eee;
-    padding: 10px;
+    padding: 15px;
     display: flex;
     justify-content: space-between;
+    align-items: center;
+    border-radius: 8px;
+    margin-bottom: 8px;
+    box-shadow: 0 2px 4px rgba(0,0,0,0.05);
+    transition: transform 0.2s;
+}
+
+li:hover {
+    transform: translateX(5px);
+}
+
+/* Анимация появления */
+@keyframes fadeIn {
+    from { opacity: 0; transform: translateY(20px); }
+    to { opacity: 1; transform: translateY(0); }
+}
+
+main {
+    animation: fadeIn 0.5s ease-out;
+}
+
+/* Стили для строки поиска, которую мы взяли из корня */
+#pool-search {
+    width: 100%;
+    padding: 12px;
+    margin-bottom: 20px;
+    border: 2px solid #eee;
+    border-radius: 8px;
+    font-size: 16px;
+    box-sizing: border-box; /* Чтобы паддинги не раздували ширину */
+}
+
+#pool-search:focus {
+    border-color: #667eea;
+    outline: none;
 }

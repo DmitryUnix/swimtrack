@@ -3,62 +3,51 @@ const router = express.Router();
 const db = require('../database');
 const { authenticateToken } = require('../middleware/middleware'); 
 
-//список всех бассейнов
+// Получение всех бассейнов с поиском
 router.get('/', async (req, res) => {
     try {
-        const result = await db.query(
-            'SELECT id, name, city, address, price, amenities, rating FROM pools ORDER BY id DESC'
-        );
+        const searchTerm = req.query.search;
+        let queryText = 'SELECT id, name, city, price FROM pools';
+        let params = [];
+
+        if (searchTerm) {
+            // PostgreSQL требует $1, $2 вместо ?
+            // ILIKE сделает поиск регистронезависимым (удобно для "Минск" и "минск")
+            queryText += ' WHERE name ILIKE $1 OR city ILIKE $2';
+            params = [`%${searchTerm}%`, `%${searchTerm}%`];
+        }
+        
+        queryText += ' ORDER BY id DESC';
+        
+        const result = await db.query(queryText, params);
+        // В pg результат всегда лежит в result.rows
         res.json(result.rows);
     } catch (error) {
-        console.error('Ошибка получения списка бассейнов:', error);
+        console.error('Ошибка поиска:', error);
         res.status(500).json({ error: 'Ошибка сервера' });
     }
 });
 
-//детали одного бассейна
-router.get('/:id', async (req, res) => {
-    try {
-        const poolId = req.params.id;
-        const result = await db.query(
-            'SELECT id, name, city, address, price, amenities, rating FROM pools WHERE id = $1',
-            [poolId]
-        );
-
-        if (result.rows.length === 0) {
-            return res.status(404).json({ error: 'Бассейн не найден' });
-        }
-
-        res.json(result.rows[0]);
-    } catch (error) {
-        console.error('Ошибка получения деталей бассейна:', error);
-        res.status(500).json({ error: 'Ошибка сервера' });
-    }
-});
-
+// Добавление бассейна
 router.post('/', authenticateToken, async (req, res) => {
     try {
-        const { name, city, address, price, amenities, rating } = req.body;
-
-        //проверка обязательных полей
+        const { name, city, price } = req.body;
         if (!name || !city || !price) {
-            return res.status(400).json({ 
-                error: 'Недостаточно данных: name, city, price обязательны' 
-            });
+            return res.status(400).json({ error: 'Заполните обязательные поля: name, city, price' });
         }
 
+        // В PostgreSQL используем $1, $2, $3 и возвращаем ID через RETURNING
         const result = await db.query(
-            'INSERT INTO pools (name, city, address, price, amenities, rating) VALUES ($1, $2, $3, $4, $5, $6) RETURNING id, name, city',
-            [name, city, address || '', price, amenities || '', rating || 0]
+            'INSERT INTO pools (name, city, price) VALUES ($1, $2, $3) RETURNING id',
+            [name, city, price]
         );
 
         res.status(201).json({
-            message: 'Бассейн успешно добавлен',
-            pool: result.rows[0]
+            message: 'Бассейн добавлен',
+            id: result.rows[0].id // Берем id из первой строки результата
         });
-
     } catch (error) {
-        console.error('Ошибка добавления бассейна:', error);
+        console.error('Ошибка добавления:', error);
         res.status(500).json({ error: 'Ошибка сервера' });
     }
 });

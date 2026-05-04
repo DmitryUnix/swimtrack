@@ -4,118 +4,118 @@ const db = require('../database');
 const bcrypt = require('bcryptjs');
 const jwt = require('jsonwebtoken');
 const { authenticateToken } = require('../middleware/middleware'); 
-//регистрация нового пользователя
+
+// 1. РЕГИСТРАЦИЯ
 router.post('/register', async (req, res) => {
     try {
-        const { email, password, name } = req.body;
+        const { email, password, name, secret_question, secret_answer } = req.body;
 
-        //проверка всех обязательных полей
-        if (!email || !password || !name) {
+        if (!email || !password || !name || !secret_question || !secret_answer) {
             return res.status(400).json({ 
-                error: 'Все поля обязательны: email, password, name' 
+                error: 'Все поля обязательны, включая секретный вопрос и ответ' 
             });
         }
 
-        //хеширование пароля
         const salt = await bcrypt.genSalt(10);
         const hashedPassword = await bcrypt.hash(password, salt);
 
-        //вставка в базу данных
+        // В PostgreSQL используем $1, $2... и возвращаем ID через RETURNING id
         const result = await db.query(
-            'INSERT INTO users (email, passwordhash, name) VALUES ($1, $2, $3) RETURNING id, email, name, createdAt',
-            [email, hashedPassword, name]
+            'INSERT INTO users (email, passwordhash, name, secret_question, secret_answer) VALUES ($1, $2, $3, $4, $5) RETURNING id',
+            [email, hashedPassword, name, secret_question, secret_answer]
         );
 
-        //успешная регистрация
         res.status(201).json({
             message: 'Пользователь успешно зарегистрирован',
-            userId: result.rows[0].id,
-            email: result.rows[0].email,
-            name: result.rows[0].name,
-            createdAt: result.rows[0].createdAt
+            userId: result.rows[0].id // В PG данные лежат в rows
         });
 
     } catch (error) {
         console.error('Ошибка регистрации:', error);
-
-        //обработка ошибок
+        // Код 23505 в PostgreSQL означает нарушение уникальности (email уже есть)
         if (error.code === '23505') {
-            //ограничение email
-            return res.status(409).json({ 
-                error: 'Email уже зарегистрирован' 
-            });
+            return res.status(409).json({ error: 'Email уже зарегистрирован' });
         }
-
-        //общие ошибки сервера
-        res.status(500).json({ 
-            error: 'Ошибка на сервере при регистрации' 
-        });
+        res.status(500).json({ error: 'Ошибка на сервере при регистрации' });
     }
 });
 
-//аутаризация (вход в систему)
+// 2. ВХОД В СИСТЕМУ
 router.post('/login', async (req, res) => {
     try {
         const { email, password } = req.body;
 
-        //проверка обязательных полей
         if (!email || !password) {
-            return res.status(400).json({ 
-                error: 'Необходимы email и password' 
-            });
+            return res.status(400).json({ error: 'Необходимы email и password' });
         }
 
-        //поиск пользователя в базе
+        // Поиск пользователя (используем $1)
         const result = await db.query(
             'SELECT id, email, passwordhash FROM users WHERE email = $1',
             [email]
         );
 
-        //если пользователь не найден
         if (result.rows.length === 0) {
-            return res.status(404).json({ 
-                error: 'Пользователь не найден' 
-            });
+            return res.status(404).json({ error: 'Пользователь не найден' });
         }
 
         const user = result.rows[0];
-
-        //сравнение пароля
         const isValidPassword = await bcrypt.compare(password, user.passwordhash);
 
         if (!isValidPassword) {
-            return res.status(401).json({ 
-                error: 'Неверный пароль' 
-            });
+            return res.status(401).json({ error: 'Неверный пароль' });
         }
 
-        //успешный вход то генерируем токен
-        const token = jwt.sign({ id: user.id, email: user.email }, process.env.JWT_SECRET, { expiresIn: '1h' });
+        const token = jwt.sign(
+            { id: user.id, email: user.email }, 
+            process.env.JWT_SECRET || 'supersecret', 
+            { expiresIn: '1h' }
+        );
 
         res.json({
             message: 'Успешный вход',
             userId: user.id,
-            email: user.email,
             token: token
         });
 
     } catch (error) {
         console.error('Ошибка входа:', error);
-        res.status(500).json({ 
-            error: 'Ошибка на сервере при входе' 
-        });
+        res.status(500).json({ error: 'Ошибка на сервере при входе' });
     }
 });
 
+// 3. ВОССТАНОВЛЕНИЕ ПАРОЛЯ
+router.post('/reset-password', async (req, res) => {
+    const { email, secret_answer, newPassword } = req.body;
+    try {
+        const result = await db.query(
+            'SELECT secret_answer FROM users WHERE email = $1',
+            [email]
+        );
+
+        if (result.rows.length === 0) return res.status(404).json({ error: 'Пользователь не найден' });
+
+        if (result.rows[0].secret_answer.toLowerCase() !== secret_answer.toLowerCase()) {
+            return res.status(403).json({ error: 'Неверный ответ на секретный вопрос' });
+        }
+
+        const hashedPassword = await bcrypt.hash(newPassword, 10);
+        // Используем $1 и $2
+        await db.query('UPDATE users SET passwordhash = $1 WHERE email = $2', [hashedPassword, email]);
+        
+        res.json({ message: 'Пароль успешно изменен' });
+    } catch (err) {
+        console.error('Ошибка сброса пароля:', err);
+        res.status(500).json({ error: 'Ошибка сервера' });
+    }
+});
+
+// 4. ПОЛУЧЕНИЕ ДАННЫХ ТЕКУЩЕГО ПОЛЬЗОВАТЕЛЯ
 router.get('/me', authenticateToken, async (req, res) => {
     try {
-        //берем id из токена который мы подписали при логине
-        const userId = req.user.id;
-
-        //запрашиваем данные пользователя из базы
         const result = await db.query(
             'SELECT id, email, name FROM users WHERE id = $1',
-            [userId]
+            [req.user.id]
         );
 
         if (result.rows.length === 0) {
@@ -123,10 +123,10 @@ router.get('/me', authenticateToken, async (req, res) => {
         }
 
         res.json(result.rows[0]);
-
     } catch (error) {
-        console.error('Ошибка получения профиля:', error);
+        console.error('Ошибка получения /me:', error);
         res.status(500).json({ error: 'Ошибка сервера' });
     }
 });
+
 module.exports = router;
