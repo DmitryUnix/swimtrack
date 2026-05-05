@@ -35,6 +35,7 @@ async function checkAuth() {
     const authLinks = document.getElementById('auth-links'); 
     const privateLinks = document.getElementById('private-links');
     const adminLink = document.getElementById('admin-link');
+    const userDisplay = document.getElementById('user-status-display'); // Твоя новая фишка в HTML
 
     if (token) {
         try {
@@ -45,9 +46,17 @@ async function checkAuth() {
             if (!res.ok) throw new Error('Сессия истекла');
             const user = await res.json();
 
-            // Показываем админку только админам
+            // 1. Твоя важная проверка админки (ОСТАВЛЯЕМ)
             if (adminLink) {
                 adminLink.style.display = user.role === 'admin' ? 'inline-block' : 'none';
+            }
+
+            // 2. ФИШКА: Индикатор "На дорожке"
+            if (userDisplay) {
+                userDisplay.innerHTML = `
+                    <span class="status-dot online"></span>
+                    <span class="user-name">${user.name}</span>
+                `;
             }
 
             if (authLinks) authLinks.classList.add('hidden');
@@ -58,6 +67,10 @@ async function checkAuth() {
             location.reload(); 
         }
     } else {
+        // Если гость — гасим индикатор
+        if (userDisplay) {
+            userDisplay.innerHTML = `<span class="status-dot offline"></span> <small>Вне системы</small>`;
+        }
         if (authLinks) authLinks.classList.remove('hidden');
         if (privateLinks) privateLinks.classList.add('hidden');
     }

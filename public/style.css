@@ -206,3 +206,31 @@ ul {
     border-radius: 12px;
     text-align: left;
 }
+
+.user-status {
+    display: inline-flex;
+    align-items: center;
+    margin-right: 20px;
+    font-size: 0.9em;
+}
+
+.status-dot {
+    width: 10px;
+    height: 10px;
+    border-radius: 50%;
+    margin-right: 8px;
+}
+
+.status-dot.online {
+    background-color: #00d1ff; /* Ярко-синий, как вода в бассейне */
+    box-shadow: 0 0 8px #00d1ff;
+}
+
+.status-dot.offline {
+    background-color: #bbb;
+}
+
+.user-name {
+    font-weight: bold;
+    color: #2c3e50;
+}
