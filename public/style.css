@@ -1,78 +1,120 @@
+
+:root {
+    --swim-gradient: linear-gradient(90deg, #0052d4, #4364f7, #6fb1fc);
+    --swim-blue: #0088ff;
+    --dark-blue: #0055aa;
+    --light-bg: #f4f7f6;
+    --white: #ffffff;
+    --error-red: #ff6b6b;
+}
+
 body {
     font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); /* Красивый фиолетово-синий градиент */
-    color: #333;
     margin: 0;
     padding: 0;
+    background-color: var(--light-bg);
+    color: #333;
     min-height: 100vh;
+}
+
+.app-header {
+    background: var(--swim-gradient);
+    color: var(--white);
+    padding: 15px 5%;
     display: flex;
-    justify-content: center;
+    justify-content: space-between;
     align-items: center;
+    box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+    position: sticky;
+    top: 0;
+    z-index: 1000;
 }
 
-.container {
-    max-width: 800px;
-    width: 90%;
-    margin: 40px auto;
-    padding: 40px;
-    background: white;
-    border-radius: 15px;
-    box-shadow: 0 10px 30px rgba(0,0,0,0.2);
-    text-align: center;
+.logo {
+    font-size: 1.8rem;
+    font-weight: bold;
+    margin: 0;
 }
 
-header {
-    margin-bottom: 40px;
-}
-
-h1 {
-    color: #764ba2;
-    font-size: 3rem;
-    margin-bottom: 20px;
-    text-shadow: 2px 2px 4px rgba(0,0,0,0.1);
-}
 
 nav {
     display: flex;
-    justify-content: center;
-    gap: 20px;
+    align-items: center;
+    gap: 15px;
     flex-wrap: wrap;
 }
 
 nav a {
     text-decoration: none;
-    color: #667eea;
+    color: rgba(255, 255, 255, 0.9);
     font-weight: bold;
-    font-size: 1.1rem;
-    padding: 10px 20px;
-    border-radius: 25px;
+    font-size: 0.95rem;
+    padding: 8px 15px;
+    border-radius: 20px;
     transition: all 0.3s ease;
-    background: #f0f0f0;
 }
 
 nav a:hover {
-    background: #667eea;
+    background: rgba(255, 255, 255, 0.2);
     color: white;
-    transform: translateY(-2px);
-    box-shadow: 0 4px 8px rgba(102, 126, 234, 0.3);
 }
 
-.hidden {
-    display: none !important;
+
+.btn-logout, #logout-btn {
+    background: rgba(255, 255, 255, 0.15);
+    color: white;
+    border: 1px solid rgba(255, 255, 255, 0.5);
+    padding: 8px 18px;
+    border-radius: 20px;
+    cursor: pointer;
+    font-weight: bold;
+    transition: 0.3s;
 }
+
+.btn-logout:hover, #logout-btn:hover {
+    background: var(--error-red);
+    border-color: var(--error-red);
+    transform: scale(1.05);
+}
+
+
+.container {
+    max-width: 900px;
+    width: 90%;
+    margin: 40px auto;
+}
+
+.glass-card {
+    background: var(--white);
+    padding: 40px;
+    border-radius: 15px;
+    box-shadow: 0 10px 30px rgba(0,0,0,0.05);
+    border-top: 6px solid var(--swim-blue); 
+    text-align: center;
+}
+
+@keyframes fadeIn {
+    from { opacity: 0; transform: translateY(10px); }
+    to { opacity: 1; transform: translateY(0); }
+}
+
+main#content {
+    animation: fadeIn 0.4s ease-out;
+}
+
 
 form {
     display: flex;
     flex-direction: column;
     gap: 15px;
     max-width: 400px;
-    margin: 0 auto;
+    margin: 20px auto;
     text-align: left;
 }
 
-input {
+input, select {
     padding: 12px;
-    border: 2px solid #ddd;
+    border: 1px solid #ddd;
     border-radius: 8px;
     font-size: 16px;
     transition: border-color 0.3s;
@@ -80,103 +122,87 @@ input {
 
 input:focus {
     outline: none;
-    border-color: #667eea;
+    border-color: var(--swim-blue);
 }
 
 button[type="submit"] {
-    padding: 12px;
-    background: linear-gradient(to right, #667eea, #764ba2);
+    padding: 14px;
+    background: var(--swim-blue);
     color: white;
     border: none;
     border-radius: 8px;
     font-size: 16px;
     font-weight: bold;
     cursor: pointer;
-    transition: transform 0.2s, box-shadow 0.2s;
+    transition: 0.3s;
 }
 
 button[type="submit"]:hover {
-    transform: scale(1.02);
-    box-shadow: 0 4px 12px rgba(118, 75, 162, 0.4);
+    background: var(--dark-blue);
+    box-shadow: 0 4px 12px rgba(0, 136, 255, 0.3);
 }
 
-#logout-btn {
-    background: linear-gradient(to right, #ff6b6b, #ee5a6e);
-    color: white;
-    border: none;
-    padding: 10px 20px;
-    border-radius: 8px;
-    cursor: pointer;
-    margin-top: 20px;
-    font-weight: bold;
-    transition: transform 0.2s;
-}
-
-#logout-btn:hover {
-    transform: scale(1.02);
-}
-
-.error-msg {
-    color: #ff6b6b;
-    text-align: center;
-    margin-top: 10px;
-    min-height: 20px;
-    font-weight: bold;
-}
-
-#user-info {
-    background: linear-gradient(to right, #f0f0f0, #e0e0e0);
-    padding: 20px;
-    border-radius: 10px;
-    margin-bottom: 20px;
-    text-align: left;
-}
 
 ul {
-    list-style-type: none;
+    list-style: none;
     padding: 0;
-    text-align: left;
 }
 
-li {
+.pool-item, li {
     background: white;
-    border-bottom: 1px solid #eee;
+    border: 1px solid #eee;
     padding: 15px;
     display: flex;
     justify-content: space-between;
     align-items: center;
-    border-radius: 8px;
-    margin-bottom: 8px;
-    box-shadow: 0 2px 4px rgba(0,0,0,0.05);
-    transition: transform 0.2s;
+    border-radius: 10px;
+    margin-bottom: 10px;
+    transition: transform 0.2s, box-shadow 0.2s;
 }
 
-li:hover {
+.pool-item:hover, li:hover {
     transform: translateX(5px);
+    box-shadow: 0 5px 15px rgba(0,0,0,0.05);
+    border-left: 5px solid var(--swim-blue);
 }
 
-/* Анимация появления */
-@keyframes fadeIn {
-    from { opacity: 0; transform: translateY(20px); }
-    to { opacity: 1; transform: translateY(0); }
+.price {
+    font-weight: bold;
+    color: var(--swim-blue);
 }
 
-main {
-    animation: fadeIn 0.5s ease-out;
-}
 
-/* Стили для строки поиска, которую мы взяли из корня */
-#pool-search {
+#pool-search, #pool-search-main {
     width: 100%;
     padding: 12px;
-    margin-bottom: 20px;
+    margin-bottom: 25px;
     border: 2px solid #eee;
     border-radius: 8px;
     font-size: 16px;
-    box-sizing: border-box; /* Чтобы паддинги не раздували ширину */
+    box-sizing: border-box;
 }
 
-#pool-search:focus {
-    border-color: #667eea;
-    outline: none;
+
+.hidden {
+    display: none !important;
+}
+
+.error-msg {
+    color: var(--error-red);
+    font-weight: bold;
+    margin: 10px 0;
+}
+
+
+.grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(250px, 1fr));
+    gap: 20px;
+}
+
+.card {
+    background: #f9f9f9;
+    padding: 20px;
+    border-radius: 12px;
+    text-align: left;
 }

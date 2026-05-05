@@ -6,24 +6,33 @@
     <link rel="stylesheet" href="/style.css">
 </head>
 <body>
-    <div class="container">
-        <header>
-            <h1>SwimTrack</h1>
-            <nav>
-                <a href="#/">Главная</a> |
-                <a href="#/login">Вход</a> |
-                <a href="#/register">Регистрация</a>
-                <a href="#/profile" id="profile-link" class="hidden">Профиль</a>
-                <button id="logout-btn" class="hidden" onclick="logout()">Выйти</button>
-            </nav>
-        </header>
+    <header class="app-header">
+        <h1 class="logo">SwimTrack</h1>
+        <nav class="main-nav">
+            <a href="#/">Главная</a> 
+            <a href="#/about">О приложении</a> 
+            <a href="#/techniques">Техники</a> 
+            <a href="#/pools">Бассейны</a> 
+            
+            <span id="auth-links">
+                <a href="#/login">Вход</a> 
+                <a href="#/register" class="btn-reg">Регистрация</a>
+            </span>
 
-        <main id="content">
-            <!-- Сюда будет загружаться контент через JS -->
+            <span id="private-links" class="hidden">
+                <a href="#/profile">Кабинет</a> 
+                <a href="#/admin">Админка</a> 
+                <button onclick="logout()" class="btn-logout">Выйти</button>
+            </span>
+        </nav>
+    </header>
+
+    <div class="container">
+        <main id="content" class="glass-card">
+            <!-- Сюда загружается динамический контент -->
         </main>
     </div>
 
-    <!-- Подключаем логику -->
     <script src="/app.js"></script>
 </body>
 </html>

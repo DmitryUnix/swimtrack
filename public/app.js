@@ -6,45 +6,41 @@ const router = {
         return this;
     },
     
-    resolve: function(hash) {
-        if (!hash) return;
+    resolve: function() {
+        const hash = window.location.hash || '#/';
         const path = hash.replace('#', '');
-        if (this.routes[path]) {
-            this.routes[path]();
-        } else if (this.routes['']) {
-            this.routes['']();
-        }
+        const handler = this.routes[path] || (this.routes[path] === undefined ? render404 : this.routes['/']);
+        if (handler) handler();
     }
 };
+
+window.addEventListener('hashchange', () => router.resolve());
 
 document.addEventListener('click', function(e) {
     if (e.target.tagName === 'A') {
         const href = e.target.getAttribute('href');
         if (href && href.startsWith('#')) {
-            e.preventDefault();
-            const path = href.replace('#', '');
-            router.resolve(path);
+            checkAuth(); 
         }
     }
 });
 
 window.addEventListener('load', () => {
     checkAuth();
-    const currentHash = window.location.hash || '#/';
-    router.resolve(currentHash.slice(1));
+    router.resolve();
 });
 
 function checkAuth() {
     const token = localStorage.getItem('token');
-    const profileLink = document.getElementById('profile-link');
-    const logoutBtn = document.getElementById('logout-btn');
+    const authLinks = document.getElementById('auth-links'); // Контейнер для Вход/Регистрация
+    const privateLinks = document.getElementById('private-links'); // Контейнер для Профиль/Выход
 
     if (token) {
-        if (profileLink) profileLink.classList.remove('hidden');
-        if (logoutBtn) logoutBtn.classList.remove('hidden');
+        if (authLinks) authLinks.classList.add('hidden');
+        if (privateLinks) privateLinks.classList.remove('hidden');
     } else {
-        if (profileLink) profileLink.classList.add('hidden');
-        if (logoutBtn) logoutBtn.classList.add('hidden');
+        if (authLinks) authLinks.classList.remove('hidden');
+        if (privateLinks) privateLinks.classList.add('hidden');
     }
 }
 
@@ -54,14 +50,85 @@ router
     .on('/login', renderLogin)
     .on('/register', renderRegister)
     .on('/profile', renderProfile)
-    .on('/reset-password', renderResetPassword);
+    .on('/reset-password', renderResetPassword)
+    .on('/about', renderAbout)
+    .on('/techniques', renderTechniques)
+    .on('/pools', renderPools)
+    .on('/admin', renderAdmin);
 
-// Рендер главной
-function renderHome() {
-    document.getElementById('content').innerHTML = `
-        <h2>Добро пожаловать в SwimTrack!</h2>
-        <p>Ваш персональный трекер бассейнов.</p>
+async function renderPools() {
+    const contentEl = document.getElementById('content');
+    contentEl.innerHTML = '<p>Загрузка...</p>';
+    
+    const data = await fetchPageContent('pools'); // Берем заголовок с сервера
+    
+    contentEl.innerHTML = `
+        <h2>${data.title}</h2>
+        <p>${data.description}</p>
+        <input type="text" id="pool-search-main" placeholder="Поиск по названию или городу..." class="search-input">
+        <div id="pools-list-main" class="pools-grid"></div>
     `;
+    
+    const searchInput = document.getElementById('pool-search-main');
+    const listContainer = document.getElementById('pools-list-main');
+    const updateList = (search = '') => {
+        const url = search ? `/api/pools?search=${encodeURIComponent(search)}` : '/api/pools';
+        fetch(url)
+            .then(res => res.json())
+            .then(pools => {
+                listContainer.innerHTML = pools.map(pool => `
+                    <div class="pool-item">
+                        <strong>${pool.name}</strong> <span>(${pool.city})</span>
+                        <div class="price">${pool.price} BYN</div>
+                    </div>
+                `).join('');
+            });
+    };
+    searchInput.addEventListener('input', (e) => updateList(e.target.value));
+    updateList();
+}
+
+    // Рендер главной
+async function renderHome() {
+    const contentEl = document.getElementById('content');
+    contentEl.innerHTML = '<p>Загрузка...</p>';
+    
+    const data = await fetchPageContent('home');
+    contentEl.innerHTML = `
+
+            <h2>${data.title}</h2>
+            <p>${data.description}</p>
+
+    `;
+}
+
+async function renderAbout() {
+    const contentEl = document.getElementById('content');
+    contentEl.innerHTML = '<p>Загрузка...</p>';
+    
+    const data = await fetchPageContent('about');
+    contentEl.innerHTML = `
+       
+            <h2>${data.title}</h2>
+            <p>${data.description}</p>
+       
+    `;
+}
+
+async function renderTechniques() {
+    const contentEl = document.getElementById('content');
+    contentEl.innerHTML = '<h2>Загрузка техник...</h2>';
+    try {
+        const res = await fetch('/api/techniques');
+        const data = await res.json();
+        contentEl.innerHTML = `
+            <h2>Библиотека техник</h2>
+            <div class="grid">
+                ${data.map(t => `<div class="card"><h3>${t.name}</h3><p>${t.description}</p></div>`).join('')}
+            </div>`;
+    } catch (err) {
+        contentEl.innerHTML = '<h2>Библиотека техник</h2><p>Данные пока не добавлены на сервер.</p>';
+    }
 }
 
 // Рендер входа
@@ -95,7 +162,7 @@ function renderLogin() {
             
             localStorage.setItem('token', data.token);
             checkAuth();
-            router.resolve('profile');
+            window.location.hash = '/profile';
         } catch (err) {
             errorEl.textContent = err.message;
         }
@@ -137,7 +204,7 @@ function renderRegister() {
             const data = await res.json();
             if (!res.ok) throw new Error(data.error || 'Ошибка регистрации');
             alert('Регистрация успешна!');
-            router.resolve('login');
+            window.location.hash = '/login';
         } catch (err) {
             errorEl.textContent = err.message;
         }
@@ -173,7 +240,7 @@ function renderResetPassword() {
 
             msgEl.style.color = 'green';
             msgEl.textContent = 'Пароль успешно изменен!';
-            setTimeout(() => router.resolve('login'), 2000);
+            setTimeout(() => window.location.hash = '/login', 2000);
         } catch (err) {
             msgEl.style.color = 'red';
             msgEl.textContent = err.message;
@@ -184,7 +251,11 @@ function renderResetPassword() {
 // Рендер профиля с поиском
 function renderProfile() {
     const token = localStorage.getItem('token');
-    if (!token) { router.resolve('login'); return; }
+
+    if (!token) {
+        window.location.hash = '#/login';
+        return; 
+    }
 
     document.getElementById('content').innerHTML = '<h2>Загрузка...</h2>';
 
@@ -217,6 +288,10 @@ function renderProfile() {
     });
 }
 
+async function renderAdmin() {
+    document.getElementById('content').innerHTML = `<h2>Админ-панель</h2><p>Доступ ограничен.</p>`;
+}
+
 // Загрузка бассейнов (встроенный поиск)
 function loadPools(search = '') {
     const url = search ? `/api/pools?search=${encodeURIComponent(search)}` : '/api/pools';
@@ -241,8 +316,14 @@ function loadPools(search = '') {
         });
 }
 
+async function fetchPageContent(pageId) {
+    const res = await fetch(`/api/content/${pageId}`);
+    return await res.json();
+}
+
 window.logout = function() {
     localStorage.removeItem('token');
     checkAuth();
-    router.resolve('');
+    window.location.hash = '#/';
 };
+
