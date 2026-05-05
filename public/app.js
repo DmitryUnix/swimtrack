@@ -64,6 +64,7 @@ async function checkAuth() {
 }
 
 // Что-то очень важное, не трогать!
+// Это перенаправляет на страницу логина если токен отсутствует
 function withAuth(handler) {
     return () => {
         const token = localStorage.getItem('token');
