@@ -1,1 +1,16 @@
+# Все зависимости Node.js
+node_modules/
+
+# Переменные окружения 
+.env
+
+# Логи
+*.log
+npm-debug.log*
+
+# Операционная система
 .DS_Store
+Thumbs.db
+
+# База данных PostgreSQL
+*.db
