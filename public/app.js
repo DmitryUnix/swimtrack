@@ -30,31 +30,64 @@ window.addEventListener('load', () => {
     router.resolve();
 });
 
-function checkAuth() {
+async function checkAuth() {
     const token = localStorage.getItem('token');
-    const authLinks = document.getElementById('auth-links'); // Контейнер для Вход/Регистрация
-    const privateLinks = document.getElementById('private-links'); // Контейнер для Профиль/Выход
+    const authLinks = document.getElementById('auth-links'); 
+    const privateLinks = document.getElementById('private-links');
+    const adminLink = document.getElementById('admin-link');
 
     if (token) {
-        if (authLinks) authLinks.classList.add('hidden');
-        if (privateLinks) privateLinks.classList.remove('hidden');
+        try {
+            const res = await fetch('/api/auth/me', {
+                headers: { 'Authorization': `Bearer ${token}` }
+            });
+            
+            if (!res.ok) throw new Error('Сессия истекла');
+            const user = await res.json();
+
+            // Показываем админку только админам
+            if (adminLink) {
+                adminLink.style.display = user.role === 'admin' ? 'inline-block' : 'none';
+            }
+
+            if (authLinks) authLinks.classList.add('hidden');
+            if (privateLinks) privateLinks.classList.remove('hidden');
+
+        } catch (err) {
+            localStorage.removeItem('token');
+            location.reload(); 
+        }
     } else {
         if (authLinks) authLinks.classList.remove('hidden');
         if (privateLinks) privateLinks.classList.add('hidden');
     }
 }
 
+// Что-то очень важное, не трогать!
+function withAuth(handler) {
+    return () => {
+        const token = localStorage.getItem('token');
+        if (!token) {
+            window.location.hash = '#/login';
+        } else {
+            handler();
+        }
+    };
+}
+
 // Роуты
 router
     .on('/', renderHome)
-    .on('/login', renderLogin)
-    .on('/register', renderRegister)
-    .on('/profile', renderProfile)
-    .on('/reset-password', renderResetPassword)
     .on('/about', renderAbout)
     .on('/techniques', renderTechniques)
     .on('/pools', renderPools)
-    .on('/admin', renderAdmin);
+    .on('/login', renderLogin)
+    .on('/register', renderRegister)
+    .on('/reset-password', renderResetPassword)
+
+    .on('/pools/:id', withAuth(renderPoolDetail)) 
+    .on('/profile', withAuth(renderProfile))      
+    .on('/admin', withAuth(renderAdmin));
 
 async function renderPools() {
     const contentEl = document.getElementById('content');
@@ -249,47 +282,96 @@ function renderResetPassword() {
 }
 
 // Рендер профиля с поиском
-function renderProfile() {
+async function renderProfile() {
     const token = localStorage.getItem('token');
+    const contentEl = document.getElementById('content');
 
-    if (!token) {
-        window.location.hash = '#/login';
-        return; 
-    }
+    contentEl.innerHTML = '<h2>Загрузка...</h2>';
 
-    document.getElementById('content').innerHTML = '<h2>Загрузка...</h2>';
-
-    fetch('/api/auth/me', { headers: { 'Authorization': `Bearer ${token}` } })
-    .then(res => {
+    try {
+        const res = await fetch('/api/auth/me', { 
+            headers: { 'Authorization': `Bearer ${token}` } 
+        });
+        
         if (!res.ok) throw new Error('Не авторизован');
-        return res.json();
-    })
-    .then(user => {
-        document.getElementById('content').innerHTML = `
-            <h2>Личный кабинет</h2>
-            <p>Email: ${user.email}</p>
-            <p>Имя: ${user.name}</p>
+        const user = await res.json();
+
+        contentEl.innerHTML = `
+            <h2>Личный кабинет пловца</h2>
+            <div class="user-card">
+                <p><strong>Спортсмен:</strong> ${user.name}</p>
+                <p><strong>Роль в системе:</strong> ${user.role}</p>
+            </div>
             <hr>
-            <h3>Каталог бассейнов</h3>
-            <input type="text" id="pool-search" placeholder="Поиск по названию или городу..." 
-                   style="width: 100%; padding: 10px; margin-bottom: 15px; border-radius: 4px; border: 1px solid #ccc;">
-            <div id="pools-list"></div>
+            <h3>Дневник тренировок</h3>
+            <div class="workout-placeholder">
+                <p>Здесь будут отображаться ваши заплывы и статистика прогресса.</p>
+                <table class="workout-table" style="width: 100%; border-collapse: collapse; margin-top: 15px;">
+                    <thead>
+                        <tr style="border-bottom: 2px solid #ddd; text-align: left;">
+                            <th>Дата</th>
+                            <th>Дистанция</th>
+                            <th>Стиль</th>
+                            <th>Время</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr><td colspan="4" style="padding: 10px; color: #666;">Записей пока нет</td></tr>
+                    </tbody>
+                </table>
+                <button style="margin-top: 15px;" onclick="alert('Добавление будет реализовано в Лабе №4')">+ Добавить тренировку</button>
+            </div>
         `;
-        
-        const searchInput = document.getElementById('pool-search');
-        searchInput.addEventListener('input', (e) => loadPools(e.target.value));
-        
-        loadPools();
-    })
-    .catch(err => {
+    } catch (err) {
         localStorage.removeItem('token');
         checkAuth();
-        router.resolve('login');
-    });
+        window.location.hash = '#/login';
+    }
 }
 
 async function renderAdmin() {
-    document.getElementById('content').innerHTML = `<h2>Админ-панель</h2><p>Доступ ограничен.</p>`;
+    const token = localStorage.getItem('token');
+    const contentEl = document.getElementById('content');
+
+    // 1. Проверка авторизации
+    if (!token) {
+        window.location.hash = '#/login';
+        return;
+    }
+
+    contentEl.innerHTML = '<p>Проверка прав доступа...</p>';
+
+    try {
+        // 2. Запрос к /me (который мы обновили в auth.js, теперь он возвращает роль)
+        const res = await fetch('/api/auth/me', {
+            headers: { 'Authorization': `Bearer ${token}` }
+        });
+        const user = await res.json();
+
+        // 3. Проверка роли
+        if (user.role !== 'admin') {
+            contentEl.innerHTML = `
+                <div style="text-align: center; color: red; margin-top: 50px;">
+                    <h2>Доступ запрещен</h2>
+                    <p>Дмитрий, эта страница только для администраторов. Ваша роль: ${user.role}</p>
+                    <a href="#/">Вернуться на главную</a>
+                </div>
+            `;
+            return;
+        }
+
+        // 4. Если админ — показываем интерфейс
+        contentEl.innerHTML = `
+            <h2>Панель управления SwimTrack</h2>
+            <div class="admin-dashboard">
+                <div class="card">Управление пользователями</div>
+                <div class="card">Редактирование бассейнов</div>
+            </div>
+        `;
+    } catch (err) {
+        console.error(err);
+        window.location.hash = '#/login';
+    }
 }
 
 // Загрузка бассейнов (встроенный поиск)
@@ -327,3 +409,12 @@ window.logout = function() {
     window.location.hash = '#/';
 };
 
+function renderPoolDetail() {
+    document.getElementById('content').innerHTML = `
+        <div class="container">
+            <h2>Детальная информация о бассейне</h2>
+            <p>Здесь будут фото, расписание и отзывы для зарегистрированных пловцов.</p>
+            <a href="#/pools">← Назад к списку</a>
+        </div>
+    `;
+}

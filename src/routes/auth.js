@@ -114,7 +114,7 @@ router.post('/reset-password', async (req, res) => {
 router.get('/me', authenticateToken, async (req, res) => {
     try {
         const result = await db.query(
-            'SELECT id, email, name FROM users WHERE id = $1',
+            'SELECT id, email, name, role FROM users WHERE id = $1', // Добавили role сюда
             [req.user.id]
         );
 
@@ -122,7 +122,7 @@ router.get('/me', authenticateToken, async (req, res) => {
             return res.status(404).json({ error: 'Пользователь не найден' });
         }
 
-        res.json(result.rows[0]);
+        res.json(result.rows[0]); 
     } catch (error) {
         console.error('Ошибка получения /me:', error);
         res.status(500).json({ error: 'Ошибка сервера' });
