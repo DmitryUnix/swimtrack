@@ -4,7 +4,7 @@ const app = express();
 const PORT = process.env.PORT || 3000;
 
 //подключение к базе данных
-require('./database'); 
+const db = require('./database');
 
 // Middleware
 app.use(express.json()); //понимает JSON от клиента
@@ -20,36 +20,26 @@ app.use('/api/pools', poolsRoutes);
 const favoriteRoutes = require('./routes/favorites');
 app.use('/api/favorites', favoriteRoutes);
 
-
-const pageContent = {
-    'home': {
-        title: 'Добро пожаловать в SwimTrack!',
-        description: 'Ваш персональный трекер для мониторинга спортивных достижений в плавании.'
-    },
-    'about': {
-        title: 'О проекте SwimTrack',
-        description: 'Система позволяет анализировать техники и находить актуальные цены на бассейны.'
-    },
-    'pools': {
-        title: 'Каталог бассейнов',
-        description: 'Найдите подходящее место для тренировки в Бресте или Минске.'
+app.get('/api/content/:page', async (req, res) => {
+    try {
+        const result = await db.query(
+            'SELECT title, description FROM site_content WHERE key = $1', 
+            [req.params.page]
+        );
+        if (result.rows.length > 0) res.json(result.rows[0]);
+        else res.status(404).json({ error: 'Контент не найден' });
+    } catch (err) {
+        res.status(500).json({ error: 'Ошибка базы данных' });
     }
-};
-
-app.get('/api/content/:page', (req, res) => {
-    const content = pageContent[req.params.page];
-    if (content) res.json(content);
-    else res.status(404).json({ error: 'Контент не найден' });
 });
 
-// Техники тоже выносим в API (уже было у тебя, оставляем здесь)
-app.get('/api/techniques', (req, res) => {
-    const techniques = [
-        { id: 1, name: 'Кроль на груди', description: 'Самый быстрый стиль. КМС рекомендует: держите голову ниже.' },
-        { id: 2, name: 'Баттерфляй', description: 'Стиль дельфина. Требует мощного удара ногами.' },
-        { id: 3, name: 'Брасс', description: 'Технически сложный стиль. Важна фаза скольжения.' }
-    ];
-    res.json(techniques);
+app.get('/api/techniques', async (req, res) => {
+    try {
+        const result = await db.query('SELECT * FROM techniques ORDER BY id ASC');
+        res.json(result.rows);
+    } catch (err) {
+        res.status(500).json({ error: 'Ошибка базы данных' });
+    }
 });
 
 //запуск сервера

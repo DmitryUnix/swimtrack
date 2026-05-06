@@ -129,4 +129,37 @@ router.get('/me', authenticateToken, async (req, res) => {
     }
 });
 
+router.get('/all', authenticateToken, async (req, res) => {
+    try {
+        const userRes = await db.query('SELECT role FROM users WHERE id = $1', [req.user.id]);
+        if (userRes.rows[0].role !== 'admin') return res.status(403).json({ error: 'Нет доступа' });
+
+        const result = await db.query('SELECT id, name, email, role FROM users ORDER BY id ASC');
+        res.json(result.rows);
+    } catch (err) { res.status(500).json({ error: 'Ошибка сервера' }); }
+});
+
+router.delete('/users/:id', authenticateToken, async (req, res) => {
+    try {
+        const userRes = await db.query('SELECT role FROM users WHERE id = $1', [req.user.id]);
+        if (userRes.rows[0].role !== 'admin') return res.status(403).json({ error: 'Нет доступа' });
+        if (parseInt(req.params.id) === req.user.id) return res.status(400).json({ error: 'Себя удалять нельзя' });
+
+        await db.query('DELETE FROM users WHERE id = $1', [req.params.id]);
+        res.json({ message: 'Пользователь удален' });
+    } catch (err) { res.status(500).json({ error: 'Ошибка сервера' }); }
+});
+
+// Смена роли пользователя (админ правит юзера)
+router.put('/users/:id/role', authenticateToken, async (req, res) => {
+    try {
+        const adminCheck = await db.query('SELECT role FROM users WHERE id = $1', [req.user.id]);
+        if (adminCheck.rows[0].role !== 'admin') return res.status(403).json({ error: 'Нет доступа' });
+        
+        const { role } = req.body; // 'admin' или 'user'
+        await db.query('UPDATE users SET role = $1 WHERE id = $2', [role, req.params.id]);
+        res.json({ message: 'Роль обновлена' });
+    } catch (err) { res.status(500).json({ error: 'Ошибка сервера' }); }
+});
+
 module.exports = router;
