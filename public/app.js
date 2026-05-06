@@ -14,6 +14,20 @@ const router = {
     }
 };
 
+const validationRules = {
+    minPasswordLength: 6,
+    emailPattern: /^[^\s@]+@[^\s@]+\.[^\s@]+$/
+};
+
+// Функция для отображения ошибок 
+function showValidationError(elementId, message) {
+    const errorEl = document.getElementById(elementId);
+    if (errorEl) {
+        errorEl.textContent = message;
+        errorEl.style.color = 'red';
+    }
+}
+
 window.addEventListener('hashchange', () => router.resolve());
 
 document.addEventListener('click', function(e) {
@@ -187,22 +201,27 @@ function renderLogin() {
             <input type="password" name="password" placeholder="Пароль" required>
             <button type="submit">Войти</button>
         </form>
-        <div style="margin-top: 10px;">
-            <a href="#/reset-password" style="font-size: 0.8em; color: #666;">Забыли пароль?</a>
+        <div style="margin-top: 15px;">
+            <a href="#/reset-password" style="font-size: 0.8em; color: #666;">Забыли пароль? Восстановить</a>
         </div>
         <p id="error-login" class="error-msg"></p>
     `;
 
     document.getElementById('login-form').addEventListener('submit', async (e) => {
         e.preventDefault();
-        const formData = new FormData(e.target);
+        const formData = Object.fromEntries(new FormData(e.target));
         const errorEl = document.getElementById('error-login');
-        
+        errorEl.textContent = ''; 
+
+        if (!validationRules.emailPattern.test(formData.email)) {
+            return showValidationError('error-login', 'Введите корректный email');
+        }
+
         try {
             const res = await fetch('/api/auth/login', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify(Object.fromEntries(formData))
+                body: JSON.stringify(formData)
             });
             const data = await res.json();
             if (!res.ok) throw new Error(data.error || 'Ошибка входа');
@@ -211,7 +230,7 @@ function renderLogin() {
             checkAuth();
             window.location.hash = '/profile';
         } catch (err) {
-            errorEl.textContent = err.message;
+            showValidationError('error-login', err.message);
         }
     });
 }
@@ -223,9 +242,10 @@ function renderRegister() {
         <form id="register-form">
             <input type="text" name="name" placeholder="Имя" required>
             <input type="email" name="email" placeholder="Email" required>
-            <input type="password" name="password" placeholder="Пароль" required>
+            <input type="password" name="password" id="reg-pass" placeholder="Пароль (мин. 6 симв.)" required>
+            <input type="password" name="confirm_password" placeholder="Повторите пароль" required>
             <hr>
-            <p><small>Секретный вопрос для восстановления доступа:</small></p>
+            <p><small>Секретный вопрос для восстановления:</small></p>
             <select name="secret_question" required>
                 <option value="Девичья фамилия матери">Девичья фамилия матери</option>
                 <option value="Кличка первого питомца">Кличка первого питомца</option>
@@ -239,21 +259,39 @@ function renderRegister() {
 
     document.getElementById('register-form').addEventListener('submit', async (e) => {
         e.preventDefault();
-        const formData = new FormData(e.target);
+        const formData = Object.fromEntries(new FormData(e.target));
         const errorEl = document.getElementById('error-register');
+        errorEl.textContent = '';
+
+        // --- КЛИЕНТСКАЯ ВАЛИДАЦИЯ ---
+        if (formData.name.trim().length < 2) {
+            return showValidationError('error-register', 'Имя слишком короткое');
+        }
+        if (!validationRules.emailPattern.test(formData.email)) {
+            return showValidationError('error-register', 'Некорректный формат email');
+        }
+        if (formData.password.length < validationRules.minPasswordLength) {
+            return showValidationError('error-register', `Пароль должен быть не менее ${validationRules.minPasswordLength} символов`);
+        }
+        if (formData.password !== formData.confirm_password) {
+            return showValidationError('error-register', 'Пароли не совпадают');
+        }
 
         try {
+            // Удаляем confirm_password перед отправкой на бэкенд, он там не нужен
+            delete formData.confirm_password;
+
             const res = await fetch('/api/auth/register', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify(Object.fromEntries(formData))
+                body: JSON.stringify(formData)
             });
             const data = await res.json();
             if (!res.ok) throw new Error(data.error || 'Ошибка регистрации');
-            alert('Регистрация успешна!');
+            alert('Регистрация успешна! Теперь войдите.');
             window.location.hash = '/login';
         } catch (err) {
-            errorEl.textContent = err.message;
+            showValidationError('error-register', err.message);
         }
     });
 }
