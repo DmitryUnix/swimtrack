@@ -121,17 +121,27 @@ async function renderPools() {
     const contentEl = document.getElementById('content');
     contentEl.innerHTML = '<p>Загрузка...</p>';
     
-    const data = await fetchPageContent('pools'); // Берем заголовок с сервера
+    // Получаем заголовок и описание с сервера 
+    const data = await fetchPageContent('pools'); 
     
     contentEl.innerHTML = `
         <h2>${data.title}</h2>
         <p>${data.description}</p>
-        <input type="text" id="pool-search-main" placeholder="Поиск по названию или городу..." class="search-input">
+        
+        <div class="search-container">
+            <div class="search-box">
+                <span class="search-icon">🔍</span>
+                <input type="text" id="pool-search-main" placeholder="Найти бассейн или город..." class="search-input">
+            </div>
+        </div>
+        
         <div id="pools-list-main" class="pools-grid"></div>
     `;
     
     const searchInput = document.getElementById('pool-search-main');
     const listContainer = document.getElementById('pools-list-main');
+
+    // Функция обновления 
     const updateList = async (search = '') => {
         const token = localStorage.getItem('token');
         const url = search ? `/api/pools?search=${encodeURIComponent(search)}` : '/api/pools';
@@ -140,6 +150,7 @@ async function renderPools() {
             const resPools = await fetch(url);
             const pools = await resPools.json();
 
+            // Проверка избранного для текущего юзера
             let favoriteIds = [];
             if (token) {
                 const resFavs = await fetch('/api/favorites/ids', {
@@ -148,12 +159,19 @@ async function renderPools() {
                 if (resFavs.ok) favoriteIds = await resFavs.json();
             }
 
+            if (pools.length === 0) {
+                listContainer.innerHTML = '<p>Ничего не найдено. Попробуйте другой город.</p>';
+                return;
+            }
+
             listContainer.innerHTML = pools.map(pool => {
                 const isFav = favoriteIds.includes(pool.id);
                 return `
                     <div class="pool-item">
-                        <strong>${pool.name}</strong> <span>(${pool.city})</span>
-                        <div class="price">${pool.price} BYN</div>
+                        <div class="pool-info" style="text-align: left;">
+                            <strong>${pool.name}</strong> <span style="color: #666;">(${pool.city})</span>
+                            <div class="price">${pool.price} BYN</div>
+                        </div>
                         ${token ? `
                             <button class="fav-btn ${isFav ? 'active' : ''}" onclick="toggleFavorite(${pool.id}, this)">
                                 ${isFav ? '★' : '☆'}
@@ -163,11 +181,13 @@ async function renderPools() {
                 `;
             }).join('');
         } catch (err) {
-            console.error("Ошибка:", err);
+            listContainer.innerHTML = '<p class="error-msg">Ошибка связи с сервером</p>';
         }
     };
+
+    // Слушатель ввода для мгновенного поиска
     searchInput.addEventListener('input', (e) => updateList(e.target.value));
-    updateList();
+    updateList(); // Загрузка при открытии страницы
 }
 
     // Рендер главной

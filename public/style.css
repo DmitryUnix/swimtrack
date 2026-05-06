@@ -234,3 +234,68 @@ ul {
     font-weight: bold;
     color: #2c3e50;
 }
+
+/* Стили для поиска (Пункт 3) */
+.search-container {
+    margin: 25px 0;
+    display: flex;
+    justify-content: center;
+}
+
+.search-box {
+    position: relative;
+    width: 100%;
+    max-width: 500px;
+}
+
+.search-icon {
+    position: absolute;
+    left: 15px;
+    top: 50%;
+    transform: translateY(-50%);
+    font-size: 1.2rem;
+    pointer-events: none;
+    filter: grayscale(1);
+}
+
+.search-input {
+    width: 100% !important; /* Перебиваем старый инпут */
+    padding: 12px 20px 12px 45px !important;
+    border: 2px solid #ddd !important;
+    border-radius: 30px !important;
+    font-size: 1rem !important;
+    transition: all 0.3s ease;
+    margin-bottom: 0 !important;
+}
+
+.search-input:focus {
+    border-color: var(--swim-blue) !important;
+    box-shadow: 0 4px 12px rgba(0, 136, 255, 0.15);
+}
+
+/* Сетка для бассейнов */
+.pools-grid {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+    margin-top: 20px;
+}
+
+/* Кнопка избранного (чтобы была красивой) */
+.fav-btn {
+    background: none;
+    border: none;
+    font-size: 1.5rem;
+    cursor: pointer;
+    color: #ccc;
+    transition: transform 0.2s, color 0.2s;
+}
+
+.fav-btn.active {
+    color: #f1c40f;
+    transform: scale(1.1);
+}
+
+.fav-btn:hover {
+    transform: scale(1.2);
+}
