@@ -121,36 +121,56 @@ async function renderPools() {
     const contentEl = document.getElementById('content');
     contentEl.innerHTML = '<p>Загрузка...</p>';
     
-    // Получаем заголовок и описание с сервера 
+    // Получаем заголовок и описание с сервера (контент не зашит!)
     const data = await fetchPageContent('pools'); 
     
     contentEl.innerHTML = `
         <h2>${data.title}</h2>
         <p>${data.description}</p>
         
-        <div class="search-container">
-            <div class="search-box">
+        <div class="search-container" style="display: flex; gap: 10px; justify-content: center; flex-wrap: wrap; margin-bottom: 20px;">
+            <div class="search-box" style="flex: 1; min-width: 200px;">
                 <span class="search-icon">🔍</span>
-                <input type="text" id="pool-search-main" placeholder="Найти бассейн или город..." class="search-input">
+                <input type="text" id="pool-search-main" placeholder="Название..." class="search-input">
             </div>
+            
+            <select id="city-filter" class="search-input" style="width: 130px; cursor: pointer;">
+                <option value="">Все города</option>
+                <option value="Минск">Минск</option>
+                <option value="Брест">Брест</option>
+            </select>
+
+            <select id="price-filter" class="search-input" style="width: 140px; cursor: pointer;">
+                <option value="">Любая цена</option>
+                <option value="0-10">До 10 BYN</option>
+                <option value="10-20">10 - 20 BYN</option>
+            </select>
         </div>
         
         <div id="pools-list-main" class="pools-grid"></div>
     `;
     
     const searchInput = document.getElementById('pool-search-main');
+    const cityFilter = document.getElementById('city-filter');
+    const priceFilter = document.getElementById('price-filter');
     const listContainer = document.getElementById('pools-list-main');
 
-    // Функция обновления 
-    const updateList = async (search = '') => {
+    // Обновленная функция обновления с учетом всех фильтров
+    const updateList = async () => {
         const token = localStorage.getItem('token');
-        const url = search ? `/api/pools?search=${encodeURIComponent(search)}` : '/api/pools';
+        const search = searchInput.value;
+        const city = cityFilter.value;
+        const price = priceFilter.value;
+
+        // Собираем URL с параметрами
+        let url = `/api/pools?search=${encodeURIComponent(search)}`;
+        if (city) url += `&city=${encodeURIComponent(city)}`;
+        if (price) url += `&priceRange=${encodeURIComponent(price)}`;
         
         try {
             const resPools = await fetch(url);
             const pools = await resPools.json();
 
-            // Проверка избранного для текущего юзера
             let favoriteIds = [];
             if (token) {
                 const resFavs = await fetch('/api/favorites/ids', {
@@ -160,7 +180,7 @@ async function renderPools() {
             }
 
             if (pools.length === 0) {
-                listContainer.innerHTML = '<p>Ничего не найдено. Попробуйте другой город.</p>';
+                listContainer.innerHTML = '<p>Ничего не найдено по вашим параметрам.</p>';
                 return;
             }
 
@@ -185,9 +205,12 @@ async function renderPools() {
         }
     };
 
-    // Слушатель ввода для мгновенного поиска
-    searchInput.addEventListener('input', (e) => updateList(e.target.value));
-    updateList(); // Загрузка при открытии страницы
+    // Слушатели на все элементы управления
+    searchInput.addEventListener('input', updateList);
+    cityFilter.addEventListener('change', updateList);
+    priceFilter.addEventListener('change', updateList);
+
+    updateList(); 
 }
 
     // Рендер главной

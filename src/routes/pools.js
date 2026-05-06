@@ -4,23 +4,45 @@ const db = require('../database');
 const { authenticateToken } = require('../middleware/middleware'); 
 
 // Получение всех бассейнов с поиском
+// Получение всех бассейнов с поиском и фильтрацией (Пункт 4)
 router.get('/', async (req, res) => {
     try {
-        const searchTerm = req.query.search;
+        const { search, city, priceRange } = req.query; // Достаем всё, что прислал фронт
+        
         let queryText = 'SELECT id, name, city, price FROM pools';
         let params = [];
+        let conditions = [];
 
-        if (searchTerm) {
-            // PostgreSQL требует $1, $2 вместо ?
-            // ILIKE сделает поиск регистронезависимым (удобно для "Минск" и "минск")
-            queryText += ' WHERE name ILIKE $1 OR city ILIKE $2';
-            params = [`%${searchTerm}%`, `%${searchTerm}%`];
+        // 1. Условие поиска (как и было)
+        if (search) {
+            params.push(`%${search}%`);
+            // Используем индекс параметра ($1, $2...) динамически
+            conditions.push(`(name ILIKE $${params.length} OR city ILIKE $${params.length})`);
+        }
+
+        // 2. Условие города (Пункт 4.1)
+        if (city) {
+            params.push(city);
+            conditions.push(`city = $${params.length}`);
+        }
+
+        // 3. Условие цены (Пункт 4.2)
+        if (priceRange) {
+            if (priceRange === '0-10') {
+                conditions.push(`price <= 10`);
+            } else if (priceRange === '10-20') {
+                conditions.push(`price > 10 AND price <= 20`);
+            }
+        }
+
+        // Собираем условия в кучу через AND
+        if (conditions.length > 0) {
+            queryText += ' WHERE ' + conditions.join(' AND ');
         }
         
         queryText += ' ORDER BY id DESC';
         
         const result = await db.query(queryText, params);
-        // В pg результат всегда лежит в result.rows
         res.json(result.rows);
     } catch (error) {
         console.error('Ошибка поиска:', error);
