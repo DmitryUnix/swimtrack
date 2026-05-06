@@ -8,7 +8,7 @@ const router = {
     
     resolve: function() {
         const hash = window.location.hash || '#/';
-        const path = hash.replace('#', '');
+        const path = hash.replace('#', '') || '/';
         const handler = this.routes[path] || (this.routes[path] === undefined ? render404 : this.routes['/']);
         if (handler) handler();
     }
@@ -121,96 +121,105 @@ async function renderPools() {
     const contentEl = document.getElementById('content');
     contentEl.innerHTML = '<p>Загрузка...</p>';
     
-    // Получаем заголовок и описание с сервера (контент не зашит!)
-    const data = await fetchPageContent('pools'); 
-    
-    contentEl.innerHTML = `
-        <h2>${data.title}</h2>
-        <p>${data.description}</p>
-        
-        <div class="search-container" style="display: flex; gap: 10px; justify-content: center; flex-wrap: wrap; margin-bottom: 20px;">
-            <div class="search-box" style="flex: 1; min-width: 200px;">
-                <span class="search-icon">🔍</span>
-                <input type="text" id="pool-search-main" placeholder="Название..." class="search-input">
+    try {
+        // 1. Загружаем данные страницы и список городов одновременно
+        const [pageData, cities] = await Promise.all([
+            fetchPageContent('pools'),
+            fetch('/api/pools/cities/all').then(res => res.json())
+        ]);
+
+        // 2. Рисуем каркас страницы и фильтры
+        contentEl.innerHTML = `
+            <h2>${pageData.title}</h2>
+            <p>${pageData.description}</p>
+            
+            <div class="search-container" style="display: flex; gap: 10px; justify-content: center; flex-wrap: wrap; margin-bottom: 20px;">
+                <div class="search-box" style="flex: 1; min-width: 200px;">
+                    <span class="search-icon">🔍</span>
+                    <input type="text" id="pool-search-main" placeholder="Название..." class="search-input">
+                </div>
+                
+                <select id="city-filter" class="search-input" style="width: 140px; cursor: pointer;">
+                    <option value="">Все города</option>
+                    ${cities.map(city => `<option value="${city}">${city}</option>`).join('')}
+                </select>
+
+                <select id="price-sort-filter" class="search-input" style="width: 160px; cursor: pointer;">
+                    <option value="">Любая цена</option>
+                    <option value="price_asc">По возрастанию</option>
+                    <option value="price_desc">По убыванию</option>
+                </select>
             </div>
             
-            <select id="city-filter" class="search-input" style="width: 130px; cursor: pointer;">
-                <option value="">Все города</option>
-                <option value="Минск">Минск</option>
-                <option value="Брест">Брест</option>
-            </select>
+            <div id="pools-list-main" class="pools-grid"></div>
+        `;
 
-            <select id="price-filter" class="search-input" style="width: 140px; cursor: pointer;">
-                <option value="">Любая цена</option>
-                <option value="0-10">До 10 BYN</option>
-                <option value="10-20">10 - 20 BYN</option>
-            </select>
-        </div>
-        
-        <div id="pools-list-main" class="pools-grid"></div>
-    `;
-    
-    const searchInput = document.getElementById('pool-search-main');
-    const cityFilter = document.getElementById('city-filter');
-    const priceFilter = document.getElementById('price-filter');
-    const listContainer = document.getElementById('pools-list-main');
+        const searchInput = document.getElementById('pool-search-main');
+        const cityFilter = document.getElementById('city-filter');
+        const priceSort = document.getElementById('price-sort-filter');
+        const listContainer = document.getElementById('pools-list-main');
 
-    // Обновленная функция обновления с учетом всех фильтров
-    const updateList = async () => {
-        const token = localStorage.getItem('token');
-        const search = searchInput.value;
-        const city = cityFilter.value;
-        const price = priceFilter.value;
+        // 3. Функция обновления списка (внутри renderPools)
+        const updateList = async () => {
+            const token = localStorage.getItem('token');
+            const search = searchInput.value;
+            const city = cityFilter.value;
+            const sortBy = priceSort.value;
 
-        // Собираем URL с параметрами
-        let url = `/api/pools?search=${encodeURIComponent(search)}`;
-        if (city) url += `&city=${encodeURIComponent(city)}`;
-        if (price) url += `&priceRange=${encodeURIComponent(price)}`;
-        
-        try {
-            const resPools = await fetch(url);
-            const pools = await resPools.json();
+            let url = `/api/pools?search=${encodeURIComponent(search)}`;
+            if (city) url += `&city=${encodeURIComponent(city)}`;
+            if (sortBy) url += `&sortBy=${encodeURIComponent(sortBy)}`;
+            
+            try {
+                const resPools = await fetch(url);
+                const pools = await resPools.json();
 
-            let favoriteIds = [];
-            if (token) {
-                const resFavs = await fetch('/api/favorites/ids', {
-                    headers: { 'Authorization': `Bearer ${token}` }
-                });
-                if (resFavs.ok) favoriteIds = await resFavs.json();
-            }
+                let favoriteIds = [];
+                if (token) {
+                    const resFavs = await fetch('/api/favorites/ids', {
+                        headers: { 'Authorization': `Bearer ${token}` }
+                    });
+                    if (resFavs.ok) favoriteIds = await resFavs.json();
+                }
 
-            if (pools.length === 0) {
-                listContainer.innerHTML = '<p>Ничего не найдено по вашим параметрам.</p>';
-                return;
-            }
+                if (pools.length === 0) {
+                    listContainer.innerHTML = '<p>Ничего не найдено.</p>';
+                    return;
+                }
 
-            listContainer.innerHTML = pools.map(pool => {
-                const isFav = favoriteIds.includes(pool.id);
-                return `
-                    <div class="pool-item">
-                        <div class="pool-info" style="text-align: left;">
-                            <strong>${pool.name}</strong> <span style="color: #666;">(${pool.city})</span>
-                            <div class="price">${pool.price} BYN</div>
+                listContainer.innerHTML = pools.map(pool => {
+                    const isFav = favoriteIds.includes(pool.id);
+                    return `
+                        <div class="pool-item">
+                            <div class="pool-info" style="text-align: left;">
+                                <strong>${pool.name}</strong> <span style="color: #666;">(${pool.city})</span>
+                                <div class="price">${pool.price} BYN</div>
+                            </div>
+                            ${token ? `
+                                <button class="fav-btn ${isFav ? 'active' : ''}" onclick="toggleFavorite(${pool.id}, this)">
+                                    ${isFav ? '★' : '☆'}
+                                </button>
+                            ` : ''}
                         </div>
-                        ${token ? `
-                            <button class="fav-btn ${isFav ? 'active' : ''}" onclick="toggleFavorite(${pool.id}, this)">
-                                ${isFav ? '★' : '☆'}
-                            </button>
-                        ` : ''}
-                    </div>
-                `;
-            }).join('');
-        } catch (err) {
-            listContainer.innerHTML = '<p class="error-msg">Ошибка связи с сервером</p>';
-        }
-    };
+                    `;
+                }).join('');
+            } catch (err) {
+                listContainer.innerHTML = '<p class="error-msg">Ошибка связи с сервером</p>';
+            }
+        };
 
-    // Слушатели на все элементы управления
-    searchInput.addEventListener('input', updateList);
-    cityFilter.addEventListener('change', updateList);
-    priceFilter.addEventListener('change', updateList);
+        // Вешаем слушателей событий
+        searchInput.addEventListener('input', updateList);
+        cityFilter.addEventListener('change', updateList);
+        priceSort.addEventListener('change', updateList);
 
-    updateList(); 
+        // Запускаем первый раз
+        updateList(); 
+
+    } catch (err) {
+        console.error("Ошибка в renderPools:", err);
+        contentEl.innerHTML = '<p class="error-msg">Ошибка загрузки страницы. Проверь роуты!</p>';
+    }
 }
 
     // Рендер главной
@@ -246,13 +255,24 @@ async function renderTechniques() {
     try {
         const res = await fetch('/api/techniques');
         const data = await res.json();
+        
+        if (!data || data.length === 0) {
+            contentEl.innerHTML = '<h2>Библиотека техник</h2><p>В базе пока нет техник.</p>';
+            return;
+        }
+
         contentEl.innerHTML = `
             <h2>Библиотека техник</h2>
-            <div class="grid">
-                ${data.map(t => `<div class="card"><h3>${t.name}</h3><p>${t.description}</p></div>`).join('')}
+            <div class="grid" style="display: grid; grid-template-columns: repeat(auto-fit, minmax(250px, 1fr)); gap: 20px;">
+                ${data.map(t => `
+                    <div class="card" style="padding: 15px; border: 1px solid #ddd; border-radius: 8px;">
+                        <h3>${t.name}</h3>
+                        <p>${t.description}</p>
+                    </div>
+                `).join('')}
             </div>`;
     } catch (err) {
-        contentEl.innerHTML = '<h2>Библиотека техник</h2><p>Данные пока не добавлены на сервер.</p>';
+        contentEl.innerHTML = '<h2>Ошибка</h2><p>Не удалось загрузить данные из БД.</p>';
     }
 }
 
@@ -448,44 +468,153 @@ async function renderProfile() {
 async function renderAdmin() {
     const token = localStorage.getItem('token');
     const contentEl = document.getElementById('content');
-
-
-    if (!token) {
-        window.location.hash = '#/login';
-        return;
-    }
+    if (!token) { window.location.hash = '#/login'; return; }
 
     contentEl.innerHTML = '<p>Проверка прав доступа...</p>';
 
     try {
-        const res = await fetch('/api/auth/me', {
-            headers: { 'Authorization': `Bearer ${token}` }
-        });
+        const res = await fetch('/api/auth/me', { headers: { 'Authorization': `Bearer ${token}` } });
         const user = await res.json();
-
         if (user.role !== 'admin') {
-            contentEl.innerHTML = `
-                <div style="text-align: center; color: red; margin-top: 50px;">
-                    <h2>Доступ запрещен</h2>
-                    <p>Дмитрий, эта страница только для администраторов. Ваша роль: ${user.role}</p>
-                    <a href="#/">Вернуться на главную</a>
-                </div>
-            `;
+            contentEl.innerHTML = `<div style="text-align:center; color:red; padding:40px;"><h2>Доступ ограничен</h2><p>Дмитрий, нужны права админа.</p></div>`;
             return;
         }
 
-        // Если админ  показываем интерфейс
         contentEl.innerHTML = `
             <h2>Панель управления SwimTrack</h2>
-            <div class="admin-dashboard">
-                <div class="card">Управление пользователями</div>
-                <div class="card">Редактирование бассейнов</div>
+            <div class="admin-tabs" style="margin-bottom: 25px; display: flex; gap: 10px; justify-content: center;">
+                <button onclick="switchAdminTab('pools')" class="btn-reg">Управление бассейнами</button>
+                <button onclick="switchAdminTab('users')" class="btn-reg">Пользователи системы</button>
             </div>
+            <div id="admin-tab-content" class="glass-card" style="padding: 20px;"></div>
         `;
-    } catch (err) {
-        console.error(err);
-        window.location.hash = '#/login';
-    }
+
+        window.switchAdminTab = async (tab) => {
+            const container = document.getElementById('admin-tab-content');
+            
+            // Обновляем визуальный вид кнопок вкладок
+            document.querySelectorAll('.admin-tabs button').forEach(btn => btn.classList.remove('active'));
+            if (tab === 'pools') event?.target?.classList.add('active'); // Простая подсветка
+
+            if (tab === 'pools') {
+                container.innerHTML = `
+                    <div class="admin-tab-content-inner">
+                        <h3 style="margin-bottom: 10px;">➕ Добавить новый бассейн</h3>
+                        <form id="admin-add-pool-form" class="admin-grid-form">
+                            <div>
+                                <small>Название</small>
+                                <input type="text" name="name" placeholder="Название" required class="admin-input">
+                            </div>
+                            <div>
+                                <small>Город</small>
+                                <input type="text" name="city" placeholder="Город" required class="admin-input">
+                            </div>
+                            <div>
+                                <small>Цена</small>
+                                <input type="number" name="price" placeholder="BYN" required class="admin-input">
+                            </div>
+                            <button type="submit" class="btn-reg">Создать</button>
+                        </form>
+                        <hr style="margin: 30px 0; border: 0; border-top: 1px solid #eee;">
+                        <div id="admin-pools-list"></div>
+                    </div>
+                `;
+                setupPoolForm();
+                refreshAdminPools();
+            } else {
+                container.innerHTML = `<div class="admin-tab-content-inner"><h3>👥 Список пользователей</h3><div id="admin-users-list"></div></div>`;
+                refreshAdminUsers();
+            }
+        };
+
+        // --- ЛОГИКА БАССЕЙНОВ (ОБНОВЛЕННАЯ: БЕЗ ИКОНОК) ---
+        async function refreshAdminPools() {
+            const listEl = document.getElementById('admin-pools-list');
+            const pRes = await fetch('/api/pools');
+            const pools = await pRes.json();
+            
+            listEl.innerHTML = pools.map(p => `
+                <div class="admin-item" style="display:flex; gap:10px; align-items:center; flex-wrap: wrap;">
+                    <input type="text" value="${p.name}" id="p-name-${p.id}" class="admin-input" style="flex:2; min-width: 150px;">
+                    <input type="text" value="${p.city}" id="p-city-${p.id}" class="admin-input" style="flex:1; min-width: 100px;">
+                    <input type="number" value="${p.price}" id="p-price-${p.id}" class="admin-input" style="width:70px">
+                    
+                    <button onclick="updatePool(${p.id})" class="btn-save">Сохранить</button>
+                    <button onclick="deletePool(${p.id})" class="btn-delete">Удалить</button>
+                </div>
+            `).join('');
+        }
+
+        window.updatePool = async (id) => {
+            const data = {
+                name: document.getElementById(`p-name-${id}`).value,
+                city: document.getElementById(`p-city-${id}`).value,
+                price: document.getElementById(`p-price-${id}`).value
+            };
+            try {
+                const response = await fetch(`/api/pools/${id}`, {
+                    method: 'PUT',
+                    headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
+                    body: JSON.stringify(data)
+                });
+                if (response.ok) {
+                    alert('Данные бассейна обновлены!');
+                    refreshAdminPools();
+                }
+            } catch (err) { alert('Ошибка обновления'); }
+        };
+
+        window.deletePool = async (id) => {
+            if (confirm('Удалить этот бассейн навсегда?')) {
+                await fetch(`/api/pools/${id}`, { 
+                    method: 'DELETE', 
+                    headers: { 'Authorization': `Bearer ${token}` } 
+                });
+                refreshAdminPools();
+            }
+        };
+
+        function setupPoolForm() {
+            document.getElementById('admin-add-pool-form').onsubmit = async (e) => {
+                e.preventDefault();
+                const formData = Object.fromEntries(new FormData(e.target));
+                await fetch('/api/pools', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
+                    body: JSON.stringify(formData)
+                });
+                e.target.reset();
+                refreshAdminPools();
+            };
+        }
+
+        // --- ЛОГИКА ПОЛЬЗОВАТЕЛЕЙ ---
+        async function refreshAdminUsers() {
+            const listEl = document.getElementById('admin-users-list');
+            const uRes = await fetch('/api/auth/all', { headers: { 'Authorization': `Bearer ${token}` } });
+            const users = await uRes.json();
+            listEl.innerHTML = users.map(u => `
+                <div style="display:flex; justify-content:space-between; align-items:center; padding:15px; border-bottom:1px solid #eee;">
+                    <span><b>${u.name}</b> <small>(${u.email})</small> — <span class="price">${u.role}</span></span>
+                    <button onclick="deleteUser(${u.id})" class="btn-delete" style="${u.id === user.id ? 'display:none' : ''}">Удалить юзера</button>
+                </div>
+            `).join('');
+        }
+
+        window.deleteUser = async (id) => {
+            if (confirm('Удалить пользователя из системы?')) {
+                const res = await fetch(`/api/auth/users/${id}`, { 
+                    method: 'DELETE', 
+                    headers: { 'Authorization': `Bearer ${token}` } 
+                });
+                if (res.ok) refreshAdminUsers();
+                else alert('Ошибка при удалении');
+            }
+        };
+
+        switchAdminTab('pools');
+
+    } catch (err) { console.error(err); window.location.hash = '#/login'; }
 }
 
 // Загрузка бассейнов (встроенный поиск)
