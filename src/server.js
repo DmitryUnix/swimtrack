@@ -17,6 +17,9 @@ app.use('/api/auth', authRoutes);
 const poolsRoutes = require('./routes/pools');
 app.use('/api/pools', poolsRoutes);
 
+const favoriteRoutes = require('./routes/favorites');
+app.use('/api/favorites', favoriteRoutes);
+
 
 const pageContent = {
     'home': {

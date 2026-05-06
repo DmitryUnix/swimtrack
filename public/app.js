@@ -132,18 +132,39 @@ async function renderPools() {
     
     const searchInput = document.getElementById('pool-search-main');
     const listContainer = document.getElementById('pools-list-main');
-    const updateList = (search = '') => {
+    const updateList = async (search = '') => {
+        const token = localStorage.getItem('token');
         const url = search ? `/api/pools?search=${encodeURIComponent(search)}` : '/api/pools';
-        fetch(url)
-            .then(res => res.json())
-            .then(pools => {
-                listContainer.innerHTML = pools.map(pool => `
+        
+        try {
+            const resPools = await fetch(url);
+            const pools = await resPools.json();
+
+            let favoriteIds = [];
+            if (token) {
+                const resFavs = await fetch('/api/favorites/ids', {
+                    headers: { 'Authorization': `Bearer ${token}` }
+                });
+                if (resFavs.ok) favoriteIds = await resFavs.json();
+            }
+
+            listContainer.innerHTML = pools.map(pool => {
+                const isFav = favoriteIds.includes(pool.id);
+                return `
                     <div class="pool-item">
                         <strong>${pool.name}</strong> <span>(${pool.city})</span>
                         <div class="price">${pool.price} BYN</div>
+                        ${token ? `
+                            <button class="fav-btn ${isFav ? 'active' : ''}" onclick="toggleFavorite(${pool.id}, this)">
+                                ${isFav ? '★' : '☆'}
+                            </button>
+                        ` : ''}
                     </div>
-                `).join('');
-            });
+                `;
+            }).join('');
+        } catch (err) {
+            console.error("Ошибка:", err);
+        }
     };
     searchInput.addEventListener('input', (e) => updateList(e.target.value));
     updateList();
@@ -296,7 +317,7 @@ function renderRegister() {
     });
 }
 
-// Сброс пароля (Требование препода)
+// Сброс пароля 
 function renderResetPassword() {
     document.getElementById('content').innerHTML = `
         <h2>Сброс пароля</h2>
@@ -385,7 +406,7 @@ async function renderAdmin() {
     const token = localStorage.getItem('token');
     const contentEl = document.getElementById('content');
 
-    // 1. Проверка авторизации
+
     if (!token) {
         window.location.hash = '#/login';
         return;
@@ -394,13 +415,11 @@ async function renderAdmin() {
     contentEl.innerHTML = '<p>Проверка прав доступа...</p>';
 
     try {
-        // 2. Запрос к /me (который мы обновили в auth.js, теперь он возвращает роль)
         const res = await fetch('/api/auth/me', {
             headers: { 'Authorization': `Bearer ${token}` }
         });
         const user = await res.json();
 
-        // 3. Проверка роли
         if (user.role !== 'admin') {
             contentEl.innerHTML = `
                 <div style="text-align: center; color: red; margin-top: 50px;">
@@ -412,7 +431,7 @@ async function renderAdmin() {
             return;
         }
 
-        // 4. Если админ — показываем интерфейс
+        // Если админ  показываем интерфейс
         contentEl.innerHTML = `
             <h2>Панель управления SwimTrack</h2>
             <div class="admin-dashboard">
@@ -470,3 +489,23 @@ function renderPoolDetail() {
         </div>
     `;
 }
+
+window.toggleFavorite = async function(poolId, btn) {
+    const token = localStorage.getItem('token');
+    const res = await fetch('/api/favorites/toggle', {
+        method: 'POST',
+        headers: { 
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${token}`
+        },
+        body: JSON.stringify({ poolId })
+    });
+    const data = await res.json();
+    if (data.status === 'added') {
+        btn.innerHTML = '★';
+        btn.classList.add('active');
+    } else {
+        btn.innerHTML = '☆';
+        btn.classList.remove('active');
+    }
+};
