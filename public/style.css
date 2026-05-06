@@ -103,22 +103,8 @@ main#content {
 }
 
 
-form {
-    display: flex;
-    flex-direction: column;
-    gap: 15px;
-    max-width: 400px;
-    margin: 20px auto;
-    text-align: left;
-}
 
-input, select {
-    padding: 12px;
-    border: 1px solid #ddd;
-    border-radius: 8px;
-    font-size: 16px;
-    transition: border-color 0.3s;
-}
+
 
 input:focus {
     outline: none;
@@ -298,4 +284,170 @@ ul {
 
 .fav-btn:hover {
     transform: scale(1.2);
+}
+
+/* Креативные кнопки для админки */
+.btn-save, .btn-delete {
+    padding: 8px 15px;
+    border: none;
+    border-radius: 6px;
+    color: white;
+    font-weight: bold;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    font-size: 0.85rem;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+}
+
+.btn-save {
+    background: #27ae60; /* Приятный зеленый */
+}
+
+.btn-save:hover {
+    background: #2ecc71;
+    transform: translateY(-2px);
+    box-shadow: 0 4px 10px rgba(46, 204, 113, 0.3);
+}
+
+.btn-delete {
+    background: #e74c3c; /* Насыщенный красный */
+}
+
+.btn-delete:hover {
+    background: #ff5e4d;
+    transform: translateY(-2px);
+    box-shadow: 0 4px 10px rgba(231, 76, 60, 0.3);
+}
+
+.admin-item {
+    background: #fff;
+    margin-bottom: 15px;
+    padding: 15px;
+    border-radius: 12px;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.05);
+    border: 1px solid #eee;
+    transition: border-color 0.3s;
+}
+
+.admin-item:hover {
+    border-color: var(--swim-blue);
+}
+
+/* Стили для инпутов внутри списка админки */
+.admin-input {
+    border: 1px solid #ddd;
+    border-radius: 4px;
+    padding: 6px 10px;
+    font-size: 0.9rem;
+}
+
+.admin-tabs {
+    display: flex;
+    justify-content: center;
+    gap: 15px;
+    margin-bottom: 30px;
+}
+
+/* Кнопки вкладок по умолчанию */
+.btn-tab {
+    background: transparent;
+    color: var(--swim-blue);
+    border: 2px solid var(--swim-blue);
+    padding: 10px 25px;
+    border-radius: 30px;
+    cursor: pointer;
+    font-weight: 600;
+    transition: all 0.3s ease;
+}
+
+.btn-tab:hover {
+    background: rgba(0, 136, 255, 0.05);
+}
+
+/* Активная вкладка */
+.btn-tab.active {
+    background: var(--swim-gradient);
+    color: white;
+    border-color: transparent;
+    box-shadow: 0 4px 12px rgba(0, 85, 170, 0.2);
+}
+
+/* --- ОБЩИЕ ПРАВКИ ДЛЯ ФОРМЫ --- */
+#admin-add-pool-form input, 
+#admin-add-pool-form select {
+    margin-bottom: 0 !important; /* Убираем старые отступы */
+}
+
+.admin-input {
+    border: 2px solid #eee !important;
+    border-radius: 8px !important;
+}
+
+/* --- НОВАЯ КРАСИВАЯ АДМИНКА --- */
+
+/* Контейнер для вкладок */
+.admin-tabs {
+    display: flex;
+    justify-content: center;
+    gap: 12px;
+    margin-bottom: 30px;
+}
+
+/* Стили вкладок */
+.btn-tab {
+    background: #ffffff;
+    color: var(--swim-blue);
+    border: 2px solid var(--swim-blue);
+    padding: 10px 25px;
+    border-radius: 25px;
+    cursor: pointer;
+    font-weight: bold;
+    transition: 0.3s;
+}
+
+.btn-tab.active {
+    background: var(--swim-gradient);
+    color: white;
+    border: none;
+    box-shadow: 0 4px 15px rgba(67, 100, 247, 0.3);
+}
+
+/* Та самая ровная строка добавления */
+.admin-grid-form {
+    display: flex !important;
+    flex-direction: row !important; /* В одну линию! */
+    align-items: flex-end !important;
+    gap: 10px !important;
+    max-width: 100% !important;
+    margin: 20px 0 !important;
+    background: #f9f9f9;
+    padding: 20px;
+    border-radius: 12px;
+}
+
+.admin-grid-form div {
+    display: flex;
+    flex-direction: column;
+    flex: 1;
+}
+
+.admin-grid-form small {
+    margin-bottom: 5px;
+    color: #666;
+    font-weight: bold;
+}
+
+.admin-grid-form input {
+    padding: 10px !important;
+    border: 1px solid #ddd !important;
+    border-radius: 6px !important;
+    margin: 0 !important;
+}
+
+/* Кнопка "Создать" теперь не прыгает */
+.admin-grid-form button {
+    height: 40px;
+    padding: 0 30px;
+    margin: 0 !important;
 }
