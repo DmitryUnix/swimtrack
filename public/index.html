@@ -7,28 +7,34 @@
 </head>
 <body>
     <header class="app-header">
-        <h1 class="logo">SwimTrack</h1>
-        <nav class="main-nav">
-            <a href="#/">Главная</a> 
-            <a href="#/about">О приложении</a> 
-            <a href="#/techniques">Техники</a> 
-            <a href="#/pools">Бассейны</a> 
-            
-            <div id="user-status-display" class="user-status"></div>
+    <h1 class="logo">SwimTrack</h1>
+    
+    <button class="burger-menu" id="burger-btn">
+    <span></span>
+    <span></span>
+    <span></span>
+</button>
 
-            <span id="auth-links">
-                <a href="#/login">Вход</a> 
-                <a href="#/register" class="btn-reg">Регистрация</a>
-            </span>
+    <nav class="main-nav" id="nav-menu">
+        <a href="#/">Главная</a> 
+        <a href="#/about">О приложении</a> 
+        <a href="#/techniques">Техники</a> 
+        <a href="#/pools">Бассейны</a> 
+        
+        <div id="user-status-display" class="user-status"></div>
 
-            <span id="private-links" class="hidden">
-                
-                <a href="#/profile">Кабинет</a> 
-                <a href="#/admin" id="admin-link" style="display: none;">Админка</a> 
-                <button onclick="logout()" class="btn-logout">Выйти</button>
-            </span>
-        </nav>
-    </header>
+        <span id="auth-links">
+            <a href="#/login">Вход</a> 
+            <a href="#/register" class="btn-reg" style="background: rgba(255,255,255,0.2); border-radius: 20px;">Регистрация</a>
+        </span>
+
+        <span id="private-links" class="hidden">
+            <a href="#/profile">Кабинет</a> 
+            <a href="#/admin" id="admin-link" style="display: none;">Админка</a> 
+            <button onclick="logout()" class="btn-logout">Выйти</button>
+        </span>
+    </nav>
+</header>
 
     <div class="container">
         <main id="content" class="glass-card">

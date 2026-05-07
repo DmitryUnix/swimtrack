@@ -798,3 +798,22 @@ function renderErrorMessage(message = "Произошла сетевая оши�
         </div>
     `;
 }
+
+// Обработка мобильного меню 
+document.addEventListener('click', (e) => {
+    const navMenu = document.getElementById('nav-menu');
+    const burgerBtn = document.getElementById('burger-btn');
+
+    // Если кликнули на бургер 
+    if (e.target.closest('#burger-btn')) {
+        navMenu.classList.toggle('active');
+        burgerBtn.classList.toggle('open');
+    } 
+    // Если меню открыто и кликнули по ссылке или мимо меню
+    else if (navMenu.classList.contains('active')) {
+        if (e.target.closest('a') || e.target.closest('button') || !e.target.closest('.app-header')) {
+            navMenu.classList.remove('active');
+            burgerBtn.classList.remove('open');
+        }
+    }
+});
