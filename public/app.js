@@ -21,8 +21,15 @@ const router = {
     resolve: function() {
         const hash = window.location.hash || '#/';
         const path = hash.replace('#', '') || '/';
-        const handler = this.routes[path] || (this.routes[path] === undefined ? render404 : this.routes['/']);
-        if (handler) handler();
+        
+        // Пытаемся найти обработчик. Если его нет — вызываем render404
+        const handler = this.routes[path];
+        
+        if (handler) {
+            handler();
+        } else {
+            render404(); 
+        }
     }
 };
 
@@ -239,7 +246,7 @@ async function renderPools() {
                     `;
                 }).join('');
             } catch (err) {
-                listContainer.innerHTML = '<p class="error-msg">Ошибка связи с сервером</p>';
+                renderErrorMessage("Ошибка связи с сервером при поиске бассейнов.");
             }
         };
 
@@ -335,7 +342,7 @@ async function renderTechniques() {
             </div>`;
     } catch (err) {
         console.error(err);
-        contentEl.innerHTML = '<h2>Ошибка</h2><p>Не удалось загрузить данные из БД.</p>';
+        renderErrorMessage("Не удалось загрузить библиотеку техник. База данных временно недоступна.");
     }
 }
 
@@ -764,3 +771,30 @@ window.toggleFavorite = async function(poolId, btn) {
         btn.classList.remove('active');
     }
 };
+
+// Функция для 404 (Not Found)
+function render404() {
+    const contentEl = document.getElementById('content');
+    // Убираем класс glass-card и лишние стили рамок
+    contentEl.innerHTML = `
+        <div style="padding: 60px 20px; animation: fadeIn 0.5s ease-out;">
+            <h1 style="font-size: 8rem; color: var(--swim-blue); margin: 0; line-height: 1;">404</h1>
+            <h2 style="margin-top: 10px; font-size: 2rem;">Вы заплыли за буйки!</h2>
+            <p style="color: #666; font-size: 1.1rem;">Такой дорожки в нашем приложении не существует.</p>
+            <br>
+            <a href="#/" class="btn-reg" style="text-decoration: none; display: inline-block;">Вернуться на главную</a>
+        </div>
+    `;
+}
+
+// Универсальная функция для вывода ошибок сервера/сети
+function renderErrorMessage(message = "Произошла сетевая ошибка. Проверьте соединение.") {
+    const contentEl = document.getElementById('content');
+    contentEl.innerHTML = `
+        <div class="glass-card" style="border-top: 6px solid var(--error-red); animation: fadeIn 0.4s ease-out;">
+            <h3 style="color: var(--error-red); margin-top: 0;">🏊‍♂️ Проблема с погружением...</h3>
+            <p style="color: #444;">${message}</p>
+            <button onclick="location.reload()" class="btn-tab" style="margin-top: 15px; cursor: pointer;">Попробовать снова</button>
+        </div>
+    `;
+}
