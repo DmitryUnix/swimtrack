@@ -303,6 +303,7 @@ async function renderAbout() {
 async function renderTechniques() {
     const contentEl = document.getElementById('content');
     contentEl.innerHTML = '<div class="loader-wrapper"><span class="loader"></span></div>';
+    
     try {
         const res = await fetch('/api/techniques');
         const data = await res.json();
@@ -314,15 +315,26 @@ async function renderTechniques() {
 
         contentEl.innerHTML = `
             <h2>Библиотека техник</h2>
-            <div class="grid" style="display: grid; grid-template-columns: repeat(auto-fit, minmax(250px, 1fr)); gap: 20px;">
+            <p style="color: #666; margin-bottom: 30px;">Изучите основные стили плавания и посмотрите видеоуроки</p>
+            
+            <div class="techniques-grid">
                 ${data.map(t => `
-                    <div class="card" style="padding: 15px; border: 1px solid #ddd; border-radius: 8px;">
-                        <h3>${t.name}</h3>
-                        <p>${t.description}</p>
+                    <div class="card glass-card" style="padding: 25px; border-top: 4px solid var(--swim-blue); display: flex; flex-direction: column; justify-content: space-between; text-align: left;">
+                        <div>
+                            <h3 style="color: var(--dark-blue); margin-top: 0;">${t.name}</h3>
+                            <p style="line-height: 1.6; color: #444; font-size: 0.95rem;">${t.description}</p>
+                        </div>
+                        
+                        ${t.video_url ? `
+                            <a href="${t.video_url}" target="_blank" class="video-link-btn">
+                                <span>▶</span> Смотреть видеоурок
+                            </a>
+                        ` : ''}
                     </div>
                 `).join('')}
             </div>`;
     } catch (err) {
+        console.error(err);
         contentEl.innerHTML = '<h2>Ошибка</h2><p>Не удалось загрузить данные из БД.</p>';
     }
 }
