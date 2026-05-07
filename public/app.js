@@ -418,6 +418,14 @@ function renderResetPassword() {
         <h2>Сброс пароля</h2>
         <form id="reset-form">
             <input type="email" name="email" placeholder="Ваш Email" required>
+            
+            <p><small style="color: #666;">Выберите секретный вопрос, который вы указывали при регистрации:</small></p>
+            <select name="secret_question" required style="margin-bottom: 15px; width: 100%; padding: 10px; border-radius: 4px; border: 1px solid #ccc;">
+                <option value="Девичья фамилия матери">Девичья фамилия матери</option>
+                <option value="Кличка первого питомца">Кличка первого питомца</option>
+                <option value="Ваш родной город">Ваш родной город</option>
+            </select>
+            
             <input type="text" name="secret_answer" placeholder="Ответ на секретный вопрос" required>
             <input type="password" name="newPassword" placeholder="Новый пароль" required>
             <button type="submit">Сменить пароль</button>
@@ -427,6 +435,7 @@ function renderResetPassword() {
 
     document.getElementById('reset-form').addEventListener('submit', async (e) => {
         e.preventDefault();
+        // FormData автоматически подхватит и secret_question, и secret_answer
         const formData = Object.fromEntries(new FormData(e.target));
         const msgEl = document.getElementById('reset-msg');
 

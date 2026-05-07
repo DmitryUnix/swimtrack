@@ -85,22 +85,29 @@ router.post('/login', async (req, res) => {
 });
 
 // Восстановление пароля
+// Восстановление пароля (Обновлено: проверка пары Вопрос + Ответ)
 router.post('/reset-password', async (req, res) => {
-    const { email, secret_answer, newPassword } = req.body;
+    const { email, secret_question, secret_answer, newPassword } = req.body;
     try {
+        // Достаем из базы и вопрос, и ответ
         const result = await db.query(
-            'SELECT secret_answer FROM users WHERE email = $1',
+            'SELECT secret_question, secret_answer FROM users WHERE email = $1',
             [email]
         );
 
         if (result.rows.length === 0) return res.status(404).json({ error: 'Пользователь не найден' });
 
-        if (result.rows[0].secret_answer.toLowerCase() !== secret_answer.toLowerCase()) {
-            return res.status(403).json({ error: 'Неверный ответ на секретный вопрос' });
+        const user = result.rows[0];
+
+        // Проверяем соответствие вопроса и ответа (ответ — в нижнем регистре)
+        const isQuestionMatch = user.secret_question === secret_question;
+        const isAnswerMatch = user.secret_answer.toLowerCase() === secret_answer.toLowerCase();
+
+        if (!isQuestionMatch || !isAnswerMatch) {
+            return res.status(403).json({ error: 'Неверный секретный вопрос или ответ' });
         }
 
         const hashedPassword = await bcrypt.hash(newPassword, 10);
-        // Используем $1 и $2
         await db.query('UPDATE users SET passwordhash = $1 WHERE email = $2', [hashedPassword, email]);
         
         res.json({ message: 'Пароль успешно изменен' });
