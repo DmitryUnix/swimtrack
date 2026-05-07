@@ -43,6 +43,7 @@ app.get('/api/techniques', async (req, res) => {
 });
 
 //запуск сервера
-app.listen(PORT, () => {
-    console.log(`Server running on http://localhost:${PORT}`);
+// Запуск сервера с поддержкой внешних подключений (0.0.0.0)
+app.listen(PORT, '0.0.0.0', () => {
+    console.log(`Server running on port ${PORT}`);
 });
