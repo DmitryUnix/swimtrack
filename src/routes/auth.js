@@ -5,7 +5,7 @@ const bcrypt = require('bcryptjs');
 const jwt = require('jsonwebtoken');
 const { authenticateToken } = require('../middleware/middleware'); 
 
-// 1. РЕГИСТРАЦИЯ
+// Регистрация
 router.post('/register', async (req, res) => {
     try {
         const { email, password, name, secret_question, secret_answer } = req.body;
@@ -40,7 +40,7 @@ router.post('/register', async (req, res) => {
     }
 });
 
-// 2. ВХОД В СИСТЕМУ
+// Вход в систему
 router.post('/login', async (req, res) => {
     try {
         const { email, password } = req.body;
@@ -84,7 +84,7 @@ router.post('/login', async (req, res) => {
     }
 });
 
-// 3. ВОССТАНОВЛЕНИЕ ПАРОЛЯ
+// Восстановление пароля
 router.post('/reset-password', async (req, res) => {
     const { email, secret_answer, newPassword } = req.body;
     try {
@@ -110,7 +110,7 @@ router.post('/reset-password', async (req, res) => {
     }
 });
 
-// 4. ПОЛУЧЕНИЕ ДАННЫХ ТЕКУЩЕГО ПОЛЬЗОВАТЕЛЯ
+// Получение данных текущего пользователя
 router.get('/me', authenticateToken, async (req, res) => {
     try {
         const result = await db.query(

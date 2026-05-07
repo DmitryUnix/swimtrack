@@ -138,8 +138,10 @@ router
 
 async function renderPools() {
     const contentEl = document.getElementById('content');
-    contentEl.innerHTML = '<p>Загрузка...</p>';
+    contentEl.innerHTML = '<div class="loader-wrapper"><span class="loader"></span></div>';
     
+    //тот чертов скелетон
+    await new Promise(resolve => setTimeout(resolve, 800));
     try {
         // 1. Загружаем данные страницы и список городов одновременно
         const [pageData, cities] = await Promise.all([
@@ -178,7 +180,6 @@ async function renderPools() {
         const priceSort = document.getElementById('price-sort-filter');
         const listContainer = document.getElementById('pools-list-main');
 
-        // 3. Функция обновления списка (внутри renderPools)
         const updateList = async () => {
             const token = localStorage.getItem('token');
             const search = searchInput.value;
@@ -244,7 +245,7 @@ async function renderPools() {
     // Рендер главной
 async function renderHome() {
     const contentEl = document.getElementById('content');
-    contentEl.innerHTML = '<p>Загрузка...</p>';
+    contentEl.innerHTML = '<div class="loader-wrapper"><span class="loader"></span></div>';
     
     const data = await fetchPageContent('home');
     contentEl.innerHTML = `
@@ -257,7 +258,7 @@ async function renderHome() {
 
 async function renderAbout() {
     const contentEl = document.getElementById('content');
-    contentEl.innerHTML = '<p>Загрузка...</p>';
+    contentEl.innerHTML = '<div class="loader-wrapper"><span class="loader"></span></div>';
     
     const data = await fetchPageContent('about');
     contentEl.innerHTML = `
@@ -270,7 +271,7 @@ async function renderAbout() {
 
 async function renderTechniques() {
     const contentEl = document.getElementById('content');
-    contentEl.innerHTML = '<h2>Загрузка техник...</h2>';
+    contentEl.innerHTML = '<div class="loader-wrapper"><span class="loader"></span></div>';
     try {
         const res = await fetch('/api/techniques');
         const data = await res.json();
@@ -381,7 +382,6 @@ function renderRegister() {
         }
 
         try {
-            // Удаляем confirm_password перед отправкой на бэкенд, он там не нужен
             delete formData.confirm_password;
 
             const res = await fetch('/api/auth/register', {
@@ -546,7 +546,6 @@ async function renderAdmin() {
             }
         };
 
-        // --- ЛОГИКА БАССЕЙНОВ (ОБНОВЛЕННАЯ: БЕЗ ИКОНОК) ---
         async function refreshAdminPools() {
             const listEl = document.getElementById('admin-pools-list');
             const pRes = await fetch('/api/pools');
@@ -636,7 +635,7 @@ async function renderAdmin() {
     } catch (err) { console.error(err); window.location.hash = '#/login'; }
 }
 
-// Загрузка бассейнов (встроенный поиск)
+// Загрузка бассейнов 
 function loadPools(search = '') {
     const url = search ? `/api/pools?search=${encodeURIComponent(search)}` : '/api/pools';
     

@@ -24,17 +24,17 @@ router.get('/', async (req, res) => {
         // 1. Условие поиска (как и было)
         if (search) {
             params.push(`%${search}%`);
-            // Используем индекс параметра ($1, $2...) динамически
+
             conditions.push(`(name ILIKE $${params.length} OR city ILIKE $${params.length})`);
         }
 
-        // 2. Условие города (Пункт 4.1)
+
         if (city) {
             params.push(city);
             conditions.push(`city = $${params.length}`);
         }
 
-        // 3. Условие цены (Пункт 4.2)
+
         if (priceRange) {
             if (priceRange === '0-10') {
                 conditions.push(`price <= 10`);
@@ -43,7 +43,7 @@ router.get('/', async (req, res) => {
             }
         }
 
-        // Собираем условия в кучу через AND
+        
         if (conditions.length > 0) {
             queryText += ' WHERE ' + conditions.join(' AND ');
         }
@@ -74,7 +74,7 @@ router.post('/', authenticateToken, async (req, res) => {
             return res.status(400).json({ error: 'Заполните обязательные поля: name, city, price' });
         }
 
-        // В PostgreSQL используем $1, $2, $3 и возвращаем ID через RETURNING
+
         const result = await db.query(
             'INSERT INTO pools (name, city, price) VALUES ($1, $2, $3) RETURNING id',
             [name, city, price]
