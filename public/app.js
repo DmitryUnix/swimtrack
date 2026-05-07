@@ -138,18 +138,16 @@ router
 
 async function renderPools() {
     const contentEl = document.getElementById('content');
+    const token = localStorage.getItem('token'); // Проверяем токен сразу
     contentEl.innerHTML = '<div class="loader-wrapper"><span class="loader"></span></div>';
     
-    //тот чертов скелетон
     await new Promise(resolve => setTimeout(resolve, 800));
     try {
-        // 1. Загружаем данные страницы и список городов одновременно
         const [pageData, cities] = await Promise.all([
             fetchPageContent('pools'),
             fetch('/api/pools/cities/all').then(res => res.json())
         ]);
 
-        // 2. Рисуем каркас страницы и фильтры
         contentEl.innerHTML = `
             <h2>${pageData.title}</h2>
             <p>${pageData.description}</p>
@@ -170,6 +168,13 @@ async function renderPools() {
                     <option value="price_asc">По возрастанию</option>
                     <option value="price_desc">По убыванию</option>
                 </select>
+
+                ${token ? `
+                    <button id="fav-toggle-filter" class="search-input" style="width: auto; padding: 0 12px; cursor: pointer; display: flex; align-items: center; gap: 8px;" title="Показать только избранное">
+                        <span class="star-icon">☆</span>
+                        <span style="font-size: 0.9em;">Избранное</span>
+                    </button>
+                ` : ''}
             </div>
             
             <div id="pools-list-main" class="pools-grid"></div>
@@ -178,10 +183,13 @@ async function renderPools() {
         const searchInput = document.getElementById('pool-search-main');
         const cityFilter = document.getElementById('city-filter');
         const priceSort = document.getElementById('price-sort-filter');
+        const favToggle = document.getElementById('fav-toggle-filter'); // Новая кнопка
         const listContainer = document.getElementById('pools-list-main');
 
+        // Переменная для хранения состояния фильтра (вкл/выкл)
+        let showOnlyFavs = false;
+
         const updateList = async () => {
-            const token = localStorage.getItem('token');
             const search = searchInput.value;
             const city = cityFilter.value;
             const sortBy = priceSort.value;
@@ -192,7 +200,7 @@ async function renderPools() {
             
             try {
                 const resPools = await fetch(url);
-                const pools = await resPools.json();
+                let pools = await resPools.json(); // Используем let, чтобы можно было отфильтровать
 
                 let favoriteIds = [];
                 if (token) {
@@ -202,8 +210,15 @@ async function renderPools() {
                     if (resFavs.ok) favoriteIds = await resFavs.json();
                 }
 
+                // --- ЛОГИКА ИЗБРАННОГО ---
+                if (showOnlyFavs) {
+                    pools = pools.filter(p => favoriteIds.includes(p.id));
+                }
+
                 if (pools.length === 0) {
-                    listContainer.innerHTML = '<p>Ничего не найдено.</p>';
+                    listContainer.innerHTML = showOnlyFavs 
+                        ? '<p>В избранном пока пусто или нет совпадений.</p>' 
+                        : '<p>Ничего не найдено.</p>';
                     return;
                 }
 
@@ -228,17 +243,33 @@ async function renderPools() {
             }
         };
 
-        // Вешаем слушателей событий
+        // Обработчик для кнопки избранного
+        if (favToggle) {
+            favToggle.addEventListener('click', () => {
+                showOnlyFavs = !showOnlyFavs;
+                
+                // Меняем и иконку, и фон, чтобы было видно — фильтр включен!
+                const star = favToggle.querySelector('.star-icon');
+                star.innerHTML = showOnlyFavs ? '★' : '☆';
+                
+                // Визуальная индикация активности фильтра
+                favToggle.style.background = showOnlyFavs ? '#e3f2fd' : ''; // Легкая подсветка фона
+                favToggle.style.borderColor = showOnlyFavs ? '#2196f3' : ''; 
+                favToggle.style.color = showOnlyFavs ? '#2196f3' : 'inherit';
+
+                updateList();
+        });
+        }
+
         searchInput.addEventListener('input', updateList);
         cityFilter.addEventListener('change', updateList);
         priceSort.addEventListener('change', updateList);
 
-        // Запускаем первый раз
         updateList(); 
 
     } catch (err) {
         console.error("Ошибка в renderPools:", err);
-        contentEl.innerHTML = '<p class="error-msg">Ошибка загрузки страницы. Проверь роуты!</p>';
+        contentEl.innerHTML = '<p class="error-msg">Ошибка загрузки страницы.</p>';
     }
 }
 
