@@ -98,11 +98,18 @@ async function checkAuth() {
             if (authLinks) authLinks.classList.add('hidden');
             if (privateLinks) privateLinks.classList.remove('hidden');
 
+        // Внутри функции checkAuth замени блок catch на этот:
         } catch (err) {
+            console.warn("Auth check failed:", err.message);
             localStorage.removeItem('token');
-          
             AppState.setUser(null);
-            location.reload(); 
+            
+            // Вместо location.reload() просто обновляем интерфейс в состояние "Гость"
+            if (authLinks) authLinks.classList.remove('hidden');
+            if (privateLinks) privateLinks.classList.add('hidden');
+            if (userDisplay) {
+                userDisplay.innerHTML = `<span class="status-dot offline"></span> <small>Вне системы</small>`;
+            }
         }
     } else {
         
@@ -737,9 +744,26 @@ async function fetchPageContent(pageId) {
 }
 
 window.logout = function() {
+    // 1. Очищаем хранилище
     localStorage.removeItem('token');
+    
+    // 2. Обнуляем состояние приложения
+    AppState.setUser(null);
+    
+    // 3. Обнуляем визуальный статус пользователя (имя и точку)
+    const userDisplay = document.getElementById('user-status-display');
+    if (userDisplay) {
+        userDisplay.innerHTML = `<span class="status-dot offline"></span> <small>Вне системы</small>`;
+    }
+
+    // 4. Обновляем интерфейс (прячем Кабинет, показываем Вход)
     checkAuth();
+    
+    // 5. Редирект на главную и принудительный рендер через роутер
     window.location.hash = '#/';
+    router.resolve();
+    
+    console.log("Logout successful: session cleared.");
 };
 
 function renderPoolDetail() {
