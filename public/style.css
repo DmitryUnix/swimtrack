@@ -374,19 +374,96 @@ ul {
 }
 
 /* --- ОБЩИЕ ПРАВКИ ДЛЯ ФОРМЫ --- */
-#admin-add-pool-form input, 
-#admin-add-pool-form select {
-    margin-bottom: 0 !important; /* Убираем старые отступы */
+/* --- [ИСПРАВЛЕННЫЙ БЛОК: АДМИНКА + ВХОД] --- */
+
+/* --- ОБЩИЕ ПРАВКИ И СИНХРОНИЗАЦИЯ РАЗМЕРОВ --- */
+
+/* 1. ФОРМЫ (Вход, Регистрация, Сброс) — ТЕПЕРЬ КАК В АДМИНКЕ */
+#login-form, #register-form, #reset-form {
+    display: flex !important;
+    flex-direction: column !important;
+    gap: 12px !important;            /* Компактный отступ */
+    max-width: 350px !important;      /* Узкая аккуратная форма */
+    margin: 30px auto !important;
+    text-align: left;
 }
 
-.admin-input {
-    border: 2px solid #eee !important;
-    border-radius: 8px !important;
+#login-form input, 
+#register-form input, 
+#reset-form input, 
+#register-form select {
+    width: 100% !important;
+    padding: 10px !important;         /* Размер как в админке */
+    font-size: 0.9rem !important;     /* Шрифт как в админке */
+    border: 1px solid #ddd !important;
+    border-radius: 6px !important;
+    height: 40px !important;          /* Высота как в админке */
+    box-sizing: border-box !important;
 }
 
-/* --- НОВАЯ КРАСИВАЯ АДМИНКА --- */
+/* Кнопки тоже в размер админки */
+#login-form button[type="submit"], 
+#register-form button[type="submit"], 
+#reset-form button[type="submit"] {
+    height: 40px !important;
+    padding: 0 20px !important;
+    font-size: 0.9rem !important;     /* Текст как в админке */
+    font-weight: bold !important;
+    border-radius: 6px !important;
+    cursor: pointer;
+    background: var(--swim-blue);
+    color: white;
+    border: none;
+    transition: 0.3s;
+}
 
-/* Контейнер для вкладок */
+#register-form small {
+    font-size: 0.85rem !important;    /* Маленькие подписи */
+    color: #666;
+}
+
+/* 2. ТВОЯ РАБОЧАЯ АДМИНКА (БЕЗ ИЗМЕНЕНИЙ) */
+.admin-grid-form {
+    display: flex !important;
+    flex-direction: row !important; 
+    align-items: flex-end !important;
+    gap: 10px !important;
+    background: #f9f9f9;
+    padding: 20px;
+    border-radius: 12px;
+    margin: 20px 0 !important;
+}
+
+.admin-grid-form div {
+    display: flex;
+    flex-direction: column;
+    flex: 1;
+}
+
+.admin-grid-form small {
+    margin-bottom: 5px;
+    color: #666;
+    font-weight: bold;
+    text-align: left;
+}
+
+.admin-grid-form input {
+    padding: 10px !important;
+    border: 1px solid #ddd !important;
+    border-radius: 6px !important;
+    margin: 0 !important;
+    height: 40px;
+    font-size: 0.9rem !important;
+}
+
+.admin-grid-form button {
+    height: 40px;
+    line-height: 40px;
+    padding: 0 30px !important;
+    margin: 0 !important;
+    font-size: 0.9rem !important;
+}
+
 .admin-tabs {
     display: flex;
     justify-content: center;
@@ -394,7 +471,6 @@ ul {
     margin-bottom: 30px;
 }
 
-/* Стили вкладок */
 .btn-tab {
     background: #ffffff;
     color: var(--swim-blue);
@@ -409,45 +485,46 @@ ul {
 .btn-tab.active {
     background: var(--swim-gradient);
     color: white;
-    border: none;
+    border-color: transparent;
     box-shadow: 0 4px 15px rgba(67, 100, 247, 0.3);
 }
 
-/* Та самая ровная строка добавления */
-.admin-grid-form {
-    display: flex !important;
-    flex-direction: row !important; /* В одну линию! */
-    align-items: flex-end !important;
-    gap: 10px !important;
-    max-width: 100% !important;
-    margin: 20px 0 !important;
-    background: #f9f9f9;
-    padding: 20px;
-    border-radius: 12px;
-}
+/* --- АДАПТИВ ДЛЯ МОБИЛОК (375px и меньше) --- */
+@media (max-width: 650px) {
+    /* 1. Исправляем кашу в шапке */
+    .app-header {
+        flex-direction: column !important; /* Логотип сверху, меню под ним */
+        height: auto !important;
+        padding: 15px 5% !important;
+        gap: 15px !important;
+    }
 
-.admin-grid-form div {
-    display: flex;
-    flex-direction: column;
-    flex: 1;
-}
+    nav {
+        justify-content: center !important; /* Центрируем ссылки */
+        gap: 8px !important;
+        width: 100% !important;
+    }
 
-.admin-grid-form small {
-    margin-bottom: 5px;
-    color: #666;
-    font-weight: bold;
-}
+    nav a {
+        font-size: 0.85rem !important; /* Чуть меньше шрифт для мобилки */
+        padding: 6px 12px !important;
+        background: rgba(255, 255, 255, 0.1); /* Делаем их похожими на кнопки */
+        border-radius: 15px !important;
+    }
 
-.admin-grid-form input {
-    padding: 10px !important;
-    border: 1px solid #ddd !important;
-    border-radius: 6px !important;
-    margin: 0 !important;
-}
+    /* 2. Твоя рабочая админка (уже была ок, сохраняем) */
+    .admin-grid-form {
+        flex-direction: column !important;
+        align-items: stretch !important;
+        gap: 15px !important;
+    }
 
-/* Кнопка "Создать" теперь не прыгает */
-.admin-grid-form button {
-    height: 40px;
-    padding: 0 30px;
-    margin: 0 !important;
+    /* 3. Убираем лишние отступы у карточек, чтобы влезло */
+    .glass-card {
+        padding: 25px 15px !important;
+    }
+
+    .logo {
+        font-size: 1.5rem !important;
+    }
 }

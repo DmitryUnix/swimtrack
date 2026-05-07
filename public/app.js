@@ -1,3 +1,15 @@
+const AppState = {
+    user: null,           // Храним данные юзера
+    isAuthenticated: false, // Статус входа
+    
+    // Функция для обновления 
+    setUser(userData) {
+        this.user = userData;
+        this.isAuthenticated = !!userData;
+        console.log("AppState обновлен:", this.isAuthenticated ? "Авторизован" : "Гость");
+    }
+};
+
 const router = {
     routes: {},
     
@@ -49,7 +61,7 @@ async function checkAuth() {
     const authLinks = document.getElementById('auth-links'); 
     const privateLinks = document.getElementById('private-links');
     const adminLink = document.getElementById('admin-link');
-    const userDisplay = document.getElementById('user-status-display'); // Твоя новая фишка в HTML
+    const userDisplay = document.getElementById('user-status-display');
 
     if (token) {
         try {
@@ -60,12 +72,15 @@ async function checkAuth() {
             if (!res.ok) throw new Error('Сессия истекла');
             const user = await res.json();
 
-            // 1. Твоя важная проверка админки (ОСТАВЛЯЕМ)
+           
+            AppState.setUser(user);
+
+            //чето важное
             if (adminLink) {
                 adminLink.style.display = user.role === 'admin' ? 'inline-block' : 'none';
             }
 
-            // 2. ФИШКА: Индикатор "На дорожке"
+           
             if (userDisplay) {
                 userDisplay.innerHTML = `
                     <span class="status-dot online"></span>
@@ -78,10 +93,14 @@ async function checkAuth() {
 
         } catch (err) {
             localStorage.removeItem('token');
+          
+            AppState.setUser(null);
             location.reload(); 
         }
     } else {
-        // Если гость — гасим индикатор
+        
+        AppState.setUser(null);
+
         if (userDisplay) {
             userDisplay.innerHTML = `<span class="status-dot offline"></span> <small>Вне системы</small>`;
         }
