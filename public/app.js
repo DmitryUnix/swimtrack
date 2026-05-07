@@ -298,6 +298,13 @@ async function renderTechniques() {
 
 // Рендер входа
 function renderLogin() {
+
+    // Если юзер уже авторизован, не показывать форму входа, а сразу редиректить в профиль
+    if (localStorage.getItem('token')) {
+            window.location.hash = '#/profile';
+        return;
+    }
+
     document.getElementById('content').innerHTML = `
         <h2>Вход</h2>
         <form id="login-form">
@@ -341,6 +348,12 @@ function renderLogin() {
 
 // Рендер регистрации
 function renderRegister() {
+
+    if (localStorage.getItem('token')) {
+        window.location.hash = '#/profile';
+        return;
+    }
+
     document.getElementById('content').innerHTML = `
         <h2>Регистрация</h2>
         <form id="register-form">
