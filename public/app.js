@@ -514,55 +514,171 @@ function renderResetPassword() {
         }
     });
 }
-
+//----
 // Рендер профиля с поиском
+// Инициализация данных из локального хранилища
+let userWorkouts = JSON.parse(localStorage.getItem('my_workouts')) || [];
+
 async function renderProfile() {
     const token = localStorage.getItem('token');
     const contentEl = document.getElementById('content');
-
-    contentEl.innerHTML = '<h2>Загрузка...</h2>';
+    contentEl.innerHTML = '<div class="loader-wrapper"><span class="loader"></span></div>';
 
     try {
-        const res = await fetch('/api/auth/me', { 
-            headers: { 'Authorization': `Bearer ${token}` } 
-        });
-        
+        const res = await fetch('/api/auth/me', { headers: { 'Authorization': `Bearer ${token}` } });
         if (!res.ok) throw new Error('Не авторизован');
         const user = await res.json();
 
         contentEl.innerHTML = `
             <h2>Личный кабинет пловца</h2>
-            <div class="user-card">
-                <p><strong>Спортсмен:</strong> ${user.name}</p>
-                <p><strong>Роль в системе:</strong> ${user.role}</p>
+            <div class="user-card" style="margin-bottom:20px; text-align:left;">
+                <p><strong>Спортсмен:</strong> ${user.name} | <strong>Статус:</strong> ${user.role}</p>
             </div>
-            <hr>
-            <h3>Дневник тренировок</h3>
-            <div class="workout-placeholder">
-                <p>Здесь будут отображаться ваши заплывы и статистика прогресса.</p>
-                <table class="workout-table" style="width: 100%; border-collapse: collapse; margin-top: 15px;">
-                    <thead>
-                        <tr style="border-bottom: 2px solid #ddd; text-align: left;">
-                            <th>Дата</th>
-                            <th>Дистанция</th>
-                            <th>Стиль</th>
-                            <th>Время</th>
-                        </tr>
-                    </thead>
-                    <tbody>
-                        <tr><td colspan="4" style="padding: 10px; color: #666;">Записей пока нет</td></tr>
-                    </tbody>
-                </table>
-                <button style="margin-top: 15px;" onclick="alert('Добавление будет реализовано в Лабе №4')">+ Добавить тренировку</button>
+
+            <div id="workout-section">
+                <h3 style="text-align:left;">Дневник тренировок</h3>
+                
+                <div class="workout-form-container" id="workout-form-box">
+                    <input type="hidden" id="edit-index" value="-1">
+                    <div class="workout-grid-inputs">
+                        <div>
+                            <label>Стиль</label>
+                            <select id="w-style" onchange="updateDistances()">
+                                <option value="Вольный стиль">Вольный стиль</option>
+                                <option value="На спине">На спине</option>
+                                <option value="Брасс">Брасс</option>
+                                <option value="Баттерфляй">Баттерфляй</option>
+                            </select>
+                        </div>
+                        <div>
+                            <label>Дистанция</label>
+                            <select id="w-dist"></select>
+                        </div>
+                        <div>
+                            <label>Дата (ДД.ММ.ГГ)</label>
+                            <input type="text" id="w-date" placeholder="07.05.26" maxlength="8">
+                        </div>
+                        <div>
+                            <label>Время (ММ.СС.ММ)</label>
+                            <input type="text" id="w-time" placeholder="01.25.45" maxlength="8">
+                        </div>
+                    </div>
+                    <div style="display:flex; gap:10px;">
+                        <button id="btn-add-main" onclick="addWorkout()" class="btn-save" style="flex:2">Добавить запись</button>
+                        <button id="btn-cancel-edit" onclick="resetWorkoutForm()" class="btn-delete" style="flex:1; display:none;">Отмена</button>
+                    </div>
+                    <p id="workout-error" class="error-msg" style="display:none; font-size:0.8rem; text-align:center;"></p>
+                </div>
+
+                <div style="overflow-x:auto;">
+                    <table class="workout-table">
+                        <thead>
+                            <tr>
+                                <th>Дата</th>
+                                <th>Стиль</th>
+                                <th>Дист.</th>
+                                <th>Время</th>
+                                <th>Действия</th>
+                            </tr>
+                        </thead>
+                        <tbody id="workout-tbody">${renderWorkoutRows()}</tbody>
+                    </table>
+                </div>
             </div>
         `;
+        updateDistances();
     } catch (err) {
-        localStorage.removeItem('token');
-        checkAuth();
         window.location.hash = '#/login';
     }
 }
 
+// Обновление списка дистанций
+window.updateDistances = function() {
+    const style = document.getElementById('w-style').value;
+    const distSelect = document.getElementById('w-dist');
+    const distances = style === "Вольный стиль" ? [50, 100, 200, 400, 800, 1500] : [50, 100, 200];
+    distSelect.innerHTML = distances.map(d => `<option value="${d}">${d}м</option>`).join('');
+};
+
+// Рендер строк с кнопками управления
+function renderWorkoutRows() {
+    if (userWorkouts.length === 0) return `<tr><td colspan="5" style="color:#999;">Записей нет</td></tr>`;
+    return userWorkouts.map((w, index) => `
+        <tr>
+            <td>${w.date}</td>
+            <td>${w.style}</td>
+            <td>${w.dist}м</td>
+            <td>${w.time}</td>
+            <td style="display:flex; gap:5px; justify-content:center;">
+                <button onclick="editWorkout(${index})" style="background:none; border:none; cursor:pointer;">✏️</button>
+                <button onclick="deleteWorkout(${index})" style="background:none; border:none; cursor:pointer;">🗑️</button>
+            </td>
+        </tr>
+    `).reverse().join('');
+}
+
+// Добавление или сохранение изменений
+window.addWorkout = function() {
+    const date = document.getElementById('w-date').value;
+    const style = document.getElementById('w-style').value;
+    const dist = document.getElementById('w-dist').value;
+    const time = document.getElementById('w-time').value;
+    const editIndex = parseInt(document.getElementById('edit-index').value);
+    const errorEl = document.getElementById('workout-error');
+
+    const regex = /^\d{2}\.\d{2}\.\d{2}$/;
+    if (!regex.test(date) || !regex.test(time)) {
+        errorEl.textContent = "Ошибка формата! Используйте точки (00.00.00)";
+        errorEl.style.display = 'block';
+        return;
+    }
+
+    const data = { date, style, dist, time };
+    if (editIndex > -1) {
+        userWorkouts[editIndex] = data;
+    } else {
+        userWorkouts.push(data);
+    }
+
+    localStorage.setItem('my_workouts', JSON.stringify(userWorkouts));
+    resetWorkoutForm();
+    document.getElementById('workout-tbody').innerHTML = renderWorkoutRows();
+};
+
+// Удаление
+window.deleteWorkout = function(index) {
+    if (confirm("Удалить запись о тренировке?")) {
+        userWorkouts.splice(index, 1);
+        localStorage.setItem('my_workouts', JSON.stringify(userWorkouts));
+        document.getElementById('workout-tbody').innerHTML = renderWorkoutRows();
+    }
+};
+
+// Подготовка к редактированию
+window.editWorkout = function(index) {
+    const w = userWorkouts[index];
+    document.getElementById('w-date').value = w.date;
+    document.getElementById('w-style').value = w.style;
+    updateDistances();
+    document.getElementById('w-dist').value = w.dist;
+    document.getElementById('w-time').value = w.time;
+    document.getElementById('edit-index').value = index;
+    
+    document.getElementById('btn-add-main').textContent = "Сохранить изменения";
+    document.getElementById('btn-cancel-edit').style.display = "block";
+    document.getElementById('workout-form-box').style.border = "1px solid orange";
+};
+
+window.resetWorkoutForm = function() {
+    document.getElementById('edit-index').value = "-1";
+    document.getElementById('w-date').value = "";
+    document.getElementById('w-time').value = "";
+    document.getElementById('btn-add-main').textContent = "Добавить запись";
+    document.getElementById('btn-cancel-edit').style.display = "none";
+    document.getElementById('workout-form-box').style.border = "1px dashed var(--swim-blue)";
+    document.getElementById('workout-error').style.display = 'none';
+};
+//-----
 async function renderAdmin() {
     const token = localStorage.getItem('token');
     const contentEl = document.getElementById('content');
@@ -738,12 +854,15 @@ function loadPools(search = '') {
         });
 }
 
+// Универсальная функция для получения контента страниц (home, about, techniques)
 async function fetchPageContent(pageId) {
     const res = await fetch(`/api/content/${pageId}`);
     return await res.json();
 }
 
+// Функция выхода из системы
 window.logout = function() {
+    alert("Вы успешно вышли из аккаунта");
     // 1. Очищаем хранилище
     localStorage.removeItem('token');
     

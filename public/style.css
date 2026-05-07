@@ -723,3 +723,77 @@ html, body {
         display: flex !important; /* Или block, в зависимости от твоей верстки */
     }
 }
+
+/* Стили для дневника тренировок */
+.workout-table {
+    width: 100%;
+    margin-top: 20px;
+    background: white;
+    border-radius: 10px;
+    overflow: hidden;
+}
+
+.workout-table th {
+    background: var(--swim-blue);
+    color: white;
+    padding: 12px;
+    font-size: 0.9rem;
+}
+
+.workout-table td {
+    padding: 12px;
+    border-bottom: 1px solid #eee;
+    font-size: 0.9rem;
+}
+
+.workout-form-container {
+    background: #f9f9f9;
+    padding: 20px;
+    border-radius: 12px;
+    border: 1px dashed var(--swim-blue);
+    margin-bottom: 20px;
+    text-align: left;
+}
+
+.workout-grid-inputs {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+    gap: 15px;
+    margin-bottom: 15px;
+}
+
+.workout-grid-inputs div {
+    display: flex;
+    flex-direction: column;
+}
+
+.workout-grid-inputs label {
+    font-size: 0.8rem;
+    font-weight: bold;
+    color: #666;
+    margin-bottom: 5px;
+}
+
+/* Дополнительная полировка для дневника */
+.workout-table tr:hover {
+    background-color: rgba(0, 136, 255, 0.05); /* Легкая подсветка строки при наведении */
+}
+
+.workout-table th, .workout-table td {
+    text-align: center;
+    border-bottom: 1px solid #eee;
+}
+
+#workout-form-box {
+    transition: all 0.3s ease; /* Чтобы смена рамки при редактировании была плавной */
+}
+
+/* Стили для иконок-кнопок в таблице */
+.workout-table button {
+    font-size: 1.2rem;
+    transition: transform 0.2s;
+}
+
+.workout-table button:hover {
+    transform: scale(1.2);
+}
