@@ -10,6 +10,14 @@ router.post('/register', async (req, res) => {
     try {
         const { email, password, name, secret_question, secret_answer } = req.body;
 
+        // Проверка сложности пароля 
+        const passwordRegex = /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d).{8,}$/;
+        if (!passwordRegex.test(password)) {
+            return res.status(400).json({ 
+                error: "Пароль слишком простой! Нужно минимум 8 символов, заглавная буква и цифра." 
+            });
+        }
+
         if (!email || !password || !name || !secret_question || !secret_answer) {
             return res.status(400).json({ 
                 error: 'Все поля обязательны, включая секретный вопрос и ответ' 
@@ -88,6 +96,15 @@ router.post('/login', async (req, res) => {
 // Восстановление пароля (Обновлено: проверка пары Вопрос + Ответ)
 router.post('/reset-password', async (req, res) => {
     const { email, secret_question, secret_answer, newPassword } = req.body;
+
+    // Проверка сложности пароля 
+    const passwordRegex = /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d).{8,}$/;
+    if (!passwordRegex.test(newPassword)) {
+        return res.status(400).json({ 
+            error: "Пароль слишком простой! Нужно минимум 8 символов, заглавная буква и цифра." 
+        });
+    }
+    
     try {
         // Достаем из базы и вопрос, и ответ
         const result = await db.query(

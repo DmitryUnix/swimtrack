@@ -20,6 +20,9 @@ app.use('/api/pools', poolsRoutes);
 const favoriteRoutes = require('./routes/favorites');
 app.use('/api/favorites', favoriteRoutes);
 
+const workoutRoutes = require('./routes/workouts');
+app.use('/api/workouts', workoutRoutes);
+
 app.get('/api/content/:page', async (req, res) => {
     try {
         const result = await db.query(

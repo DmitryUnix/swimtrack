@@ -516,8 +516,8 @@ function renderResetPassword() {
 }
 //----
 // Рендер профиля с поиском
-// Инициализация данных из локального хранилища
-let userWorkouts = JSON.parse(localStorage.getItem('my_workouts')) || [];
+// Инициализация данных из базы
+let userWorkouts = [];
 
 async function renderProfile() {
     const token = localStorage.getItem('token');
@@ -525,9 +525,17 @@ async function renderProfile() {
     contentEl.innerHTML = '<div class="loader-wrapper"><span class="loader"></span></div>';
 
     try {
-        const res = await fetch('/api/auth/me', { headers: { 'Authorization': `Bearer ${token}` } });
-        if (!res.ok) throw new Error('Не авторизован');
-        const user = await res.json();
+        // Получаем данные юзера и ЕГО тренировки параллельно
+        const [userRes, workoutRes] = await Promise.all([
+            fetch('/api/auth/me', { headers: { 'Authorization': `Bearer ${token}` } }),
+            fetch('/api/workouts', { headers: { 'Authorization': `Bearer ${token}` } })
+        ]);
+
+        if (!userRes.ok) throw new Error('Не авторизован');
+        const user = await userRes.json();
+        
+        // Обновляем наш глобальный массив данными из базы
+        userWorkouts = workoutRes.ok ? await workoutRes.json() : [];
 
         contentEl.innerHTML = `
             <h2>Личный кабинет пловца</h2>
@@ -539,8 +547,7 @@ async function renderProfile() {
                 <h3 style="text-align:left;">Дневник тренировок</h3>
                 
                 <div class="workout-form-container" id="workout-form-box">
-                    <input type="hidden" id="edit-index" value="-1">
-                    <div class="workout-grid-inputs">
+                    <input type="hidden" id="edit-id" value="-1"> <div class="workout-grid-inputs">
                         <div>
                             <label>Стиль</label>
                             <select id="w-style" onchange="updateDistances()">
@@ -603,27 +610,24 @@ window.updateDistances = function() {
 // Рендер строк с кнопками управления
 function renderWorkoutRows() {
     if (userWorkouts.length === 0) return `<tr><td colspan="5" style="color:#999;">Записей нет</td></tr>`;
-    return userWorkouts.map((w, index) => `
+    // Используем .map((w) => ...) и передаем w.id в функции
+    return userWorkouts.map((w) => `
         <tr>
-            <td>${w.date}</td>
-            <td>${w.style}</td>
-            <td>${w.dist}м</td>
-            <td>${w.time}</td>
-            <td style="display:flex; gap:5px; justify-content:center;">
-                <button onclick="editWorkout(${index})" style="background:none; border:none; cursor:pointer;">✏️</button>
-                <button onclick="deleteWorkout(${index})" style="background:none; border:none; cursor:pointer;">🗑️</button>
+            <td>${w.workout_date}</td> <td>${w.style}</td>
+            <td>${w.distance}м</td> <td>${w.workout_time}</td> <td style="display:flex; gap:5px; justify-content:center;">
+                <button onclick="editWorkout(${w.id})" style="background:none; border:none; cursor:pointer;">✏️</button>
+                <button onclick="deleteWorkout(${w.id})" style="background:none; border:none; cursor:pointer;">🗑️</button>
             </td>
         </tr>
-    `).reverse().join('');
+    `).join(''); // Убрали .reverse(), так как БД сама может сортировать (ORDER BY id DESC)
 }
 
 // Добавление или сохранение изменений
-window.addWorkout = function() {
+window.addWorkout = async function() {
     const date = document.getElementById('w-date').value;
     const style = document.getElementById('w-style').value;
     const dist = document.getElementById('w-dist').value;
     const time = document.getElementById('w-time').value;
-    const editIndex = parseInt(document.getElementById('edit-index').value);
     const errorEl = document.getElementById('workout-error');
 
     const regex = /^\d{2}\.\d{2}\.\d{2}$/;
@@ -634,37 +638,56 @@ window.addWorkout = function() {
     }
 
     const data = { date, style, dist, time };
-    if (editIndex > -1) {
-        userWorkouts[editIndex] = data;
-    } else {
-        userWorkouts.push(data);
-    }
+    const token = localStorage.getItem('token');
 
-    localStorage.setItem('my_workouts', JSON.stringify(userWorkouts));
-    resetWorkoutForm();
-    document.getElementById('workout-tbody').innerHTML = renderWorkoutRows();
+    try {
+        const response = await fetch('/api/workouts', {
+            method: 'POST',
+            headers: { 
+                'Content-Type': 'application/json',
+                'Authorization': `Bearer ${token}`
+            },
+            body: JSON.stringify(data)
+        });
+
+        if (!response.ok) throw new Error('Ошибка сохранения');
+        
+        resetWorkoutForm();
+        renderProfile(); 
+    } catch (err) {
+        errorEl.textContent = "Не удалось сохранить тренировку в базу.";
+        errorEl.style.display = 'block';
+    }
 };
 
 // Удаление
-window.deleteWorkout = function(index) {
+window.deleteWorkout = async function(id) {
     if (confirm("Удалить запись о тренировке?")) {
-        userWorkouts.splice(index, 1);
-        localStorage.setItem('my_workouts', JSON.stringify(userWorkouts));
-        document.getElementById('workout-tbody').innerHTML = renderWorkoutRows();
+        try {
+            await fetch(`/api/workouts/${id}`, {
+                method: 'DELETE',
+                headers: { 'Authorization': `Bearer ${localStorage.getItem('token')}` }
+            });
+            renderProfile();
+        } catch (err) {
+            alert("Ошибка при удалении");
+        }
     }
 };
 
 // Подготовка к редактированию
-window.editWorkout = function(index) {
-    const w = userWorkouts[index];
-    document.getElementById('w-date').value = w.date;
+window.editWorkout = function(id) {
+    const w = userWorkouts.find(item => item.id === id);
+    if (!w) return;
+
+    document.getElementById('w-date').value = w.workout_date;
     document.getElementById('w-style').value = w.style;
     updateDistances();
-    document.getElementById('w-dist').value = w.dist;
-    document.getElementById('w-time').value = w.time;
-    document.getElementById('edit-index').value = index;
+    document.getElementById('w-dist').value = w.distance;
+    document.getElementById('w-time').value = w.workout_time;
+    document.getElementById('edit-id').value = id;
     
-    document.getElementById('btn-add-main').textContent = "Сохранить изменения";
+    document.getElementById('btn-add-main').textContent = "Сохранить изменения (скоро)";
     document.getElementById('btn-cancel-edit').style.display = "block";
     document.getElementById('workout-form-box').style.border = "1px solid orange";
 };
