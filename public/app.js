@@ -610,7 +610,6 @@ window.updateDistances = function() {
 // Рендер строк с кнопками управления
 function renderWorkoutRows() {
     if (userWorkouts.length === 0) return `<tr><td colspan="5" style="color:#999;">Записей нет</td></tr>`;
-    // Используем .map((w) => ...) и передаем w.id в функции
     return userWorkouts.map((w) => `
         <tr>
             <td>${w.workout_date}</td> <td>${w.style}</td>
@@ -619,7 +618,7 @@ function renderWorkoutRows() {
                 <button onclick="deleteWorkout(${w.id})" style="background:none; border:none; cursor:pointer;">🗑️</button>
             </td>
         </tr>
-    `).join(''); // Убрали .reverse(), так как БД сама может сортировать (ORDER BY id DESC)
+    `).join(''); 
 }
 
 // Добавление или сохранение изменений
@@ -628,7 +627,9 @@ window.addWorkout = async function() {
     const style = document.getElementById('w-style').value;
     const dist = document.getElementById('w-dist').value;
     const time = document.getElementById('w-time').value;
+    const editId = document.getElementById('edit-id').value; // Берем ID
     const errorEl = document.getElementById('workout-error');
+    const token = localStorage.getItem('token');
 
     const regex = /^\d{2}\.\d{2}\.\d{2}$/;
     if (!regex.test(date) || !regex.test(time)) {
@@ -637,17 +638,17 @@ window.addWorkout = async function() {
         return;
     }
 
-    const data = { date, style, dist, time };
-    const token = localStorage.getItem('token');
-
     try {
-        const response = await fetch('/api/workouts', {
-            method: 'POST',
+        const method = editId === "-1" ? 'POST' : 'PUT';
+        const url = editId === "-1" ? '/api/workouts' : `/api/workouts/${editId}`;
+
+        const response = await fetch(url, {
+            method: method,
             headers: { 
                 'Content-Type': 'application/json',
                 'Authorization': `Bearer ${token}`
             },
-            body: JSON.stringify(data)
+            body: JSON.stringify({ date, style, dist, time })
         });
 
         if (!response.ok) throw new Error('Ошибка сохранения');
@@ -655,7 +656,7 @@ window.addWorkout = async function() {
         resetWorkoutForm();
         renderProfile(); 
     } catch (err) {
-        errorEl.textContent = "Не удалось сохранить тренировку в базу.";
+        errorEl.textContent = "Ошибка связи с сервером.";
         errorEl.style.display = 'block';
     }
 };
@@ -693,7 +694,9 @@ window.editWorkout = function(id) {
 };
 
 window.resetWorkoutForm = function() {
-    document.getElementById('edit-index').value = "-1";
+    const editIdEl = document.getElementById('edit-id');
+    if (editIdEl) editIdEl.value = "-1"; // Исправлено на edit-id
+    
     document.getElementById('w-date').value = "";
     document.getElementById('w-time').value = "";
     document.getElementById('btn-add-main').textContent = "Добавить запись";
